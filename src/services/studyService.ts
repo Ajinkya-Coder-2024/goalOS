@@ -105,7 +105,9 @@ export const getStudyBranches = async () => {
 
 export const createStudyBranch = async (branchData) => {
   const response = await studyStructureApi.post('/branches', branchData);
-  return response.data;
+  // Backend returns { success: true, data: branch }
+  // Return the actual branch object
+  return response.data?.data || response.data;
 };
 
 export const updateStudyBranch = async (id, branchData) => {
