@@ -228,25 +228,33 @@ const Study = () => {
             // Process each subject to ensure materials array exists
             const processedSubjects = await Promise.all(
               branch.subjects.map(async (subject) => {
-                // If subject already has materials, use them
+                // Normalize materials - map 'link' to 'url' for consistency
+                let materials = [];
                 if (subject.materials && subject.materials.length > 0) {
-                  return subject;
+                  materials = subject.materials.map((material: any) => ({
+                    ...material,
+                    url: material.url || material.link || '', // Use link if url doesn't exist
+                    link: material.link || material.url || '' // Keep both for compatibility
+                  }));
+                } else {
+                  try {
+                    // Try to fetch materials for this subject
+                    const fetchedMaterials = await getStudyMaterialsBySubject(subject._id);
+                    materials = (fetchedMaterials || []).map((material: any) => ({
+                      ...material,
+                      url: material.url || material.link || '',
+                      link: material.link || material.url || ''
+                    }));
+                  } catch (error) {
+                    console.error(`Error fetching materials for subject ${subject._id}:`, error);
+                    materials = [];
+                  }
                 }
                 
-                try {
-                  // Try to fetch materials for this subject
-                  const materials = await getStudyMaterialsBySubject(subject._id);
-                  return {
-                    ...subject,
-                    materials: materials || []
-                  };
-                } catch (error) {
-                  console.error(`Error fetching materials for subject ${subject._id}:`, error);
-                  return {
-                    ...subject,
-                    materials: []
-                  };
-                }
+                return {
+                  ...subject,
+                  materials
+                };
               })
             );
             
@@ -1076,16 +1084,16 @@ const Study = () => {
                                     <span className="font-medium">{material.title}</span>
                                   </div>
                                   <a 
-                                    href={material?.url ? (
-                                      material.url.startsWith('http') ? 
-                                        material.url : 
-                                        `https://${material.url}`
+                                    href={(material?.url || material?.link) ? (
+                                      (material?.url || material?.link).startsWith('http') ? 
+                                        (material?.url || material?.link) : 
+                                        `https://${material?.url || material?.link}`
                                     ) : '#'}
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="text-blue-500 hover:underline text-xs flex items-center gap-1"
                                     onClick={(e) => {
-                                      const url = material?.url;
+                                      const url = material?.url || material?.link;
                                       
                                       // If there's no URL, prevent default and show error
                                       if (!url) {
@@ -1517,6 +1525,13 @@ const Study = () => {
                   
                   console.log('Material added successfully:', newMaterial);
                   
+                  // Normalize the new material - map 'link' to 'url' for consistency
+                  const normalizedMaterial = {
+                    ...newMaterial,
+                    url: newMaterial.url || newMaterial.link || materialForm.url.trim(),
+                    link: newMaterial.link || newMaterial.url || materialForm.url.trim()
+                  };
+                  
                   // 2. Update the UI immediately with the new material
                   setBranches(prevBranches => {
                     return prevBranches.map(branch => {
@@ -1536,7 +1551,7 @@ const Study = () => {
                             ...updatedSubjects[subjectIndex],
                             materials: [
                               ...(updatedSubjects[subjectIndex].materials || []),
-                              newMaterial
+                              normalizedMaterial
                             ]
                           };
                           
