@@ -289,17 +289,24 @@ const Study = () => {
         description: ''
       });
       
-      // Ensure new branch has subjects array
+      // Ensure new branch has subjects array and proper structure
       const branchWithSubjects = {
         ...newBranch,
-        subjects: newBranch.subjects || []
+        _id: newBranch._id || newBranch.id,
+        name: newBranch.name || newBranchName,
+        subjects: newBranch.subjects || [],
+        status: newBranch.status || 'active'
       };
+      
       setBranches([branchWithSubjects, ...branches]);
       setStatistics({
         ...statistics,
         totalBranches: statistics.totalBranches + 1,
         activeBranches: statistics.activeBranches + 1
       });
+      
+      // Switch to the new branch tab
+      setActiveTab(branchWithSubjects._id);
       
       setNewBranchName('');
       setIsDialogOpen(false);
@@ -984,7 +991,25 @@ const Study = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <h3 className="text-sm font-medium mb-3">Subjects</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-medium">Subjects</h3>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-8 text-xs"
+                    onClick={() => {
+                      setSubjectForm({
+                        name: '',
+                        description: '',
+                        branchId: branch._id
+                      });
+                      setIsSubjectDialogOpen(true);
+                    }}
+                  >
+                    <Plus className="h-3.5 w-3.5 mr-1" />
+                    Add Subject
+                  </Button>
+                </div>
                 {branch.subjects && branch.subjects.length > 0 ? (
                   <div className="space-y-3">
                     {branch.subjects.map((subject) => (
