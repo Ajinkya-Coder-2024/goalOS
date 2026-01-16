@@ -36,6 +36,8 @@ export const updateLifePlan = async (
     endAge?: number;
     targetYear?: number;
     description?: string;
+    completed?: boolean;
+    completedAt?: string | null;
   }
 ) => {
   const response = await axios.put(

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -149,6 +149,35 @@ const Study = () => {
   const [isMaterialLoading, setIsMaterialLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('overview');
 
+  // Calculate statistics from branches data
+  const overviewStats = useMemo(() => {
+    const totalBranches = branches.length;
+    const totalSubjects = branches.reduce((total, branch) => {
+      return total + (Array.isArray(branch?.subjects) ? branch.subjects.length : 0);
+    }, 0);
+    
+    const totalMaterials = branches.reduce((total, branch) => {
+      if (!Array.isArray(branch?.subjects)) return total;
+      return total + branch.subjects.reduce((subTotal: number, subject: Subject) => {
+        if (Array.isArray(subject?.materials)) {
+          return subTotal + subject.materials.length;
+        }
+        return subTotal;
+      }, 0);
+    }, 0);
+    
+    const activeBranches = branches.filter(branch => branch?.status === 'active').length;
+    const completedBranches = branches.filter(branch => branch?.status === 'completed').length;
+    
+    return {
+      totalBranches,
+      totalSubjects,
+      totalMaterials,
+      activeBranches,
+      completedBranches
+    };
+  }, [branches]);
+
   // Fetch data on component mount
   useEffect(() => {
     const fetchData = async () => {
@@ -260,7 +289,12 @@ const Study = () => {
         description: ''
       });
       
-      setBranches([newBranch, ...branches]);
+      // Ensure new branch has subjects array
+      const branchWithSubjects = {
+        ...newBranch,
+        subjects: newBranch.subjects || []
+      };
+      setBranches([branchWithSubjects, ...branches]);
       setStatistics({
         ...statistics,
         totalBranches: statistics.totalBranches + 1,
@@ -708,7 +742,7 @@ const Study = () => {
             </div>
             <div className="space-y-1">
               <p className="text-3xl font-bold text-foreground">
-                {statistics.totalBranches}
+                {overviewStats.totalBranches}
               </p>
               <p className="text-sm text-muted-foreground">Branches</p>
             </div>
@@ -734,7 +768,7 @@ const Study = () => {
             </div>
             <div className="space-y-1">
               <p className="text-3xl font-bold text-foreground">
-                {statistics.activeBranches}
+                {overviewStats.activeBranches}
               </p>
               <p className="text-sm text-muted-foreground">In Progress</p>
             </div>
@@ -758,7 +792,7 @@ const Study = () => {
             </div>
             <div className="space-y-1">
               <p className="text-3xl font-bold text-foreground">
-                {statistics.completedBranches}
+                {overviewStats.completedBranches}
               </p>
               <p className="text-sm text-muted-foreground">Finished</p>
             </div>
@@ -782,7 +816,7 @@ const Study = () => {
             </div>
             <div className="space-y-1">
               <p className="text-3xl font-bold text-foreground">
-                {statistics.totalSubjects}
+                {overviewStats.totalSubjects}
               </p>
               <p className="text-sm text-muted-foreground">Total Topics</p>
             </div>
@@ -860,104 +894,42 @@ const Study = () => {
         </div>
 
         <TabsContent value="overview" className="space-y-6 mt-6">
-          <div className="grid gap-6">
-            {branches.map((branch) => (
-              <Card key={branch._id} className="group hover:shadow-md transition-all duration-300">
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div className="flex-1">
-                      <CardTitle className="flex items-center gap-2">
-                        <span>{branch.name || 'Unnamed Branch'}</span>
-                        <Badge variant={branch.status === 'completed' ? 'default' : 'secondary'}>
-                          {branch.status ? 
-                            branch.status.charAt(0).toUpperCase() + branch.status.slice(1) : 
-                            'Active'}
-                        </Badge>
-                      </CardTitle>
-                      {branch.description && (
-                        <CardDescription className="mt-1">
-                          {branch.description}
-                        </CardDescription>
-                      )}
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setSelectedBranch(branch);
-                          setEditBranchForm({
-                            name: branch.name,
-                            description: branch.description || ''
-                          });
-                          setIsEditDialogOpen(true);
-                        }}
-                        title="Edit branch"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => {
-                          setSelectedBranch(branch);
-                          setIsDeleteDialogOpen(true);
-                        }}
-                        title="Delete branch"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center h-64">
+              <Loader2 className="h-8 w-8 animate-spin text-study" />
+            </div>
+          ) : (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-study/5 via-card to-study/10 border border-study/20 p-6">
+              <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-study/20 to-transparent blur-xl"></div>
+              <div className="relative z-10">
+                <h3 className="text-xl font-semibold mb-4">Study Material Overview</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-study mb-2">{overviewStats.totalBranches}</div>
+                    <div className="text-sm text-muted-foreground">Total Branches</div>
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium">Subjects</h3>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setActiveTab(branch._id)}
-                      className="text-study hover:text-study/80"
-                    >
-                      View All →
-                    </Button>
-                  </div>
-                  {branch.subjects && branch.subjects.length > 0 ? (
-                    <div className="space-y-3 mt-3">
-                      {branch.subjects.slice(0, 3).map((subject) => (
-                        <div 
-                          key={subject._id} 
-                          className="p-3 border rounded-lg hover:bg-accent/50 transition-colors"
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex-1">
-                              <h4 className="font-medium flex items-center gap-2">
-                                {subject.name}
-                                <span className="text-xs text-muted-foreground">
-                                  ({subject.materials?.length || 0} material{subject.materials?.length !== 1 ? 's' : ''})
-                                </span>
-                              </h4>
-                              {subject.description && (
-                                <p className="text-sm text-muted-foreground">{subject.description}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                      {branch.subjects.length > 3 && (
-                        <div className="text-center text-sm text-muted-foreground pt-2">
-                          And {branch.subjects.length - 3} more subjects...
-                        </div>
-                      )}
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-primary mb-2">
+                      {overviewStats.totalSubjects}
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground mt-3">No subjects added yet</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    <div className="text-sm text-muted-foreground">Total Subjects</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-accent mb-2">
+                      {overviewStats.totalMaterials}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Total Materials</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-600 mb-2">
+                      {overviewStats.completedBranches}
+                    </div>
+                    <div className="text-sm text-muted-foreground">Completed Branches</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </TabsContent>
 
         {branches.map((branch) => (
