@@ -158,9 +158,10 @@ export interface StudyMaterial {
   title: string;
   description?: string;
   type: 'pdf' | 'video' | 'link' | 'document' | 'other';
-  url: string;
-  subjectId: string;
-  branchId: string;
+  url?: string; // Frontend uses 'url'
+  link?: string; // Backend uses 'link'
+  subjectId?: string;
+  branchId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -261,12 +262,20 @@ export const addStudyMaterial = async (materialData: Omit<StudyMaterial, '_id' |
 
 // Get study materials by subject
 export const getStudyMaterialsBySubject = async (subjectId: string): Promise<StudyMaterial[]> => {
-  // This endpoint needs to be implemented in the backend
-  // For now, return an empty array
-  return [];
-  // Once implemented, uncomment the following:
-  // const response = await studyMaterialApi.get(`/subject/${subjectId}`);
-  // return response.data;
+  try {
+    const response = await studyMaterialApi.get(`/subject/${subjectId}`);
+    // Backend returns { success: true, data: materials[] }
+    const materials = response.data?.data || response.data || [];
+    // Normalize materials - map 'link' to 'url' for consistency
+    return materials.map((material: any) => ({
+      ...material,
+      url: material.url || material.link || '',
+      link: material.link || material.url || ''
+    }));
+  } catch (error) {
+    console.error('Error fetching materials by subject:', error);
+    return [];
+  }
 };
 
 // Get study materials by branch
