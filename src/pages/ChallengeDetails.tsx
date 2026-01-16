@@ -219,11 +219,14 @@ const ChallengeDetails = () => {
   const scrollTabs = (direction: 'left' | 'right') => {
     if (tabsContainerRef.current) {
       const scrollAmount = 200;
-      if (direction === 'left') {
-        tabsContainerRef.current.scrollLeft -= scrollAmount;
-      } else {
-        tabsContainerRef.current.scrollLeft += scrollAmount;
-      }
+      const targetScroll = direction === 'left' 
+        ? tabsContainerRef.current.scrollLeft - scrollAmount
+        : tabsContainerRef.current.scrollLeft + scrollAmount;
+      
+      tabsContainerRef.current.scrollTo({
+        left: targetScroll,
+        behavior: 'smooth'
+      });
     }
   };
   
@@ -1116,117 +1119,130 @@ const ChallengeDetails = () => {
       tempContainer.style.lineHeight = '1.6';
       document.body.appendChild(tempContainer);
 
-      // Generate professional report HTML with current data
+      // Helper function to format dates
+      const formatDate = (date: string | Date | undefined) => {
+        if (!date) return '';
+        try {
+          const d = new Date(date);
+          if (isNaN(d.getTime())) return '';
+          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        } catch {
+          return '';
+        }
+      };
+
+      // Helper function to get status display
+      const getStatusDisplay = (status: string | undefined) => {
+        if (!status) return '○ Not Started';
+        switch (status.toLowerCase()) {
+          case 'completed':
+            return '✓ Completed';
+          case 'in_progress':
+          case 'inprogress':
+            return '→ In Progress';
+          default:
+            return '○ Not Started';
+        }
+      };
+
+      // Generate fresh, minimal professional report HTML
       const reportHTML = `
-        <div style="background: white; padding: 60px; font-family: 'Times New Roman', serif; color: #000000; line-height: 1.6;">
-          <!-- Header -->
-          <div style="text-align: center; margin-bottom: 50px; border-bottom: 3px solid #000; padding-bottom: 30px;">
-            <h1 style="font-size: 28px; font-weight: bold; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 2px;">
-              ${challenge.name || 'Challenge Report'}
+        <style>
+          * {
+            box-sizing: border-box;
+          }
+          @media print {
+            thead {
+              display: table-header-group !important;
+            }
+            tbody {
+              display: table-row-group !important;
+            }
+            tr {
+              page-break-inside: avoid !important;
+              break-inside: avoid !important;
+            }
+            table {
+              page-break-inside: auto !important;
+              break-inside: auto !important;
+            }
+            .section-header {
+              page-break-after: avoid !important;
+            }
+          }
+        </style>
+        <div style="background: #ffffff; padding: 50px 60px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #000000; line-height: 1.6;">
+          <!-- Main Title -->
+          <div style="text-align: center; margin-bottom: 45px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; page-break-after: avoid;">
+            <h1 style="font-size: 26px; font-weight: 600; margin: 0; color: #000000; letter-spacing: -0.5px;">
+              SECTIONS AND SUBJECTS
             </h1>
-            <div style="font-size: 16px; color: #333; font-weight: 500;">
+            <div style="font-size: 11px; color: #666; font-weight: 400; margin-top: 8px;">
               Generated on ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
           </div>
           
-          <!-- Challenge Overview -->
-          <div style="margin-bottom: 40px;">
-            <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #333; padding-bottom: 10px;">
-              Challenge Overview
-            </h2>
-            <div style="margin-bottom: 15px; font-size: 14px;">
-              <strong style="color: #333;">Description:</strong> 
-              <span style="color: #555;">${challenge.description || 'No description available'}</span>
-            </div>
-            <div style="margin-bottom: 15px; font-size: 14px;">
-              <strong style="color: #333;">Status:</strong> 
-              <span style="color: #555;">${challenge.status ? challenge.status.charAt(0).toUpperCase() + challenge.status.slice(1) : 'Unknown'}</span>
-            </div>
-            <div style="margin-bottom: 15px; font-size: 14px;">
-              <strong style="color: #333;">Categories:</strong> 
-              <span style="color: #555;">${challenge.categories && challenge.categories.length > 0 ? challenge.categories.join(', ') : 'None'}</span>
-            </div>
-          </div>
-          
-          <!-- Statistics -->
-          <div style="margin-bottom: 40px;">
-            <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #333; padding-bottom: 10px;">
-              Statistics
-            </h2>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; border: 2px solid #333;">
-              <tr>
-                <td style="padding: 15px; border: 1px solid #333; background: #f8f8f8; font-weight: bold; font-size: 14px; width: 40%;">Total Sections</td>
-                <td style="padding: 15px; border: 1px solid #333; font-size: 14px; font-weight: 500;">${currentSections.length}</td>
-              </tr>
-              <tr>
-                <td style="padding: 15px; border: 1px solid #333; background: #f8f8f8; font-weight: bold; font-size: 14px;">Total Subjects</td>
-                <td style="padding: 15px; border: 1px solid #333; font-size: 14px; font-weight: 500;">${currentSections.reduce((total, section) => total + (section?.subjects?.length || 0), 0)}</td>
-              </tr>
-              <tr>
-                <td style="padding: 15px; border: 1px solid #333; background: #f8f8f8; font-weight: bold; font-size: 14px;">Completed Subjects</td>
-                <td style="padding: 15px; border: 1px solid #333; font-size: 14px; font-weight: 500;">${currentSections.reduce((total, section) => total + (section?.subjects?.filter((s: any) => s.status === 'completed').length || 0), 0)}</td>
-              </tr>
-            </table>
-          </div>
-          
-          <!-- Sections and Subjects -->
-          <div style="margin-bottom: 40px;">
-            <h2 style="font-size: 20px; font-weight: bold; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px; border-bottom: 2px solid #333; padding-bottom: 10px;">
-              Sections and Subjects
-            </h2>
-            ${currentSections.filter(Boolean).map((section, sectionIndex) => `
-              <div style="margin-bottom: 35px; page-break-inside: avoid; border: 1px solid #ccc; padding: 20px; background: #fafafa;">
-                <h3 style="font-size: 18px; font-weight: bold; margin-bottom: 15px; color: #000; text-transform: uppercase;">
-                  Section ${sectionIndex + 1}: ${section?.name || 'Untitled Section'}
-                </h3>
-                <div style="margin-bottom: 15px; font-size: 13px; color: #666; font-weight: 500;">
-                  ${section?.subjects?.length || 0} subject(s) in this section
+          <!-- Sections with Tables -->
+          ${currentSections.filter(Boolean).map((section, sectionIndex) => {
+            const subjects = section?.subjects || [];
+            const subjectCount = subjects.length;
+            
+            return `
+              <div style="margin-bottom: 55px; page-break-inside: avoid;">
+                <!-- Section Header -->
+                <div class="section-header" style="margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #d0d0d0;">
+                  <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 5px 0; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">
+                    SECTION ${sectionIndex + 1}: ${section?.name || 'Untitled Section'}
+                  </h2>
+                  <p style="font-size: 12px; margin: 0; color: #666; font-weight: 400;">
+                    ${subjectCount} subject(s) in this section
+                  </p>
                 </div>
                 
-                ${section?.subjects && section.subjects.length > 0 ? `
-                  <table style="width: 100%; border-collapse: collapse; margin-top: 15px; border: 1px solid #333;">
-                    <thead>
-                      <tr style="background: #333; color: white;">
-                        <th style="padding: 12px; border: 1px solid #333; text-align: left; font-size: 13px; font-weight: bold;">Subject Name</th>
-                        <th style="padding: 12px; border: 1px solid #333; text-align: left; font-size: 13px; font-weight: bold;">Status</th>
-                        <th style="padding: 12px; border: 1px solid #333; text-align: left; font-size: 13px; font-weight: bold;">Dates</th>
-                        <th style="padding: 12px; border: 1px solid #333; text-align: left; font-size: 13px; font-weight: bold;">Description</th>
+                <!-- Subjects Table -->
+                ${subjectCount > 0 ? `
+                  <table style="width: 100%; border-collapse: collapse; margin-top: 10px; border: none;">
+                    <thead style="display: table-header-group;">
+                      <tr>
+                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa;">Topic/Section Name</th>
+                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 130px;">Status</th>
+                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 200px;">Date Range</th>
+                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa;">Description</th>
                       </tr>
                     </thead>
                     <tbody>
-                      ${section.subjects.map((subject, subjectIndex) => `
-                        <tr style="${subjectIndex % 2 === 0 ? 'background: #f9f9f9;' : 'background: white;'}">
-                          <td style="padding: 12px; border: 1px solid #333; font-size: 12px; font-weight: 500;">
-                            ${subject.name || `Subject ${subjectIndex + 1}`}
-                          </td>
-                          <td style="padding: 12px; border: 1px solid #333; font-size: 12px;">
-                            ${subject.status === 'completed' ? '<span style="color: #228B22; font-weight: bold;">✓ Completed</span>' : subject.status === 'in_progress' ? '<span style="color: #FF8C00; font-weight: bold;">⏳ In Progress</span>' : '<span style="color: #666;">○ Not Started</span>'}
-                          </td>
-                          <td style="padding: 12px; border: 1px solid #333; font-size: 12px;">
-                            ${subject.startDate && subject.endDate ? 
-                              `${formatDate(subject.startDate)} - ${formatDate(subject.endDate)}` : 
-                              subject.startDate ? `From: ${formatDate(subject.startDate)}` : 
-                              subject.endDate ? `Until: ${formatDate(subject.endDate)}` : 
-                              'No dates set'
-                            }
-                          </td>
-                          <td style="padding: 12px; border: 1px solid #333; font-size: 12px;">
-                            ${subject.description || 'No description'}
-                          </td>
-                        </tr>
-                      `).join('')}
+                      ${subjects.map((subject: any, subjectIndex: number) => {
+                        const startDate = subject.startDate ? formatDate(subject.startDate) : '';
+                        const endDate = subject.endDate ? formatDate(subject.endDate) : '';
+                        const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : startDate || endDate || 'No dates set';
+                        
+                        return `
+                          <tr style="border-bottom: 1px solid #e8e8e8;">
+                            <td style="padding: 12px 16px; font-size: 13px; color: #000000; word-wrap: break-word; overflow-wrap: break-word; border-bottom: 1px solid #e8e8e8;">
+                              ${subject.name || `Subject ${subjectIndex + 1}`}
+                            </td>
+                            <td style="padding: 12px 16px; font-size: 13px; color: #333; white-space: nowrap; border-bottom: 1px solid #e8e8e8;">
+                              ${getStatusDisplay(subject.status)}
+                            </td>
+                            <td style="padding: 12px 16px; font-size: 13px; color: #333; white-space: nowrap; border-bottom: 1px solid #e8e8e8;">
+                              ${dateRange}
+                            </td>
+                            <td style="padding: 12px 16px; font-size: 13px; color: #555; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.5; border-bottom: 1px solid #e8e8e8;">
+                              ${subject.description || 'No description'}
+                            </td>
+                          </tr>
+                        `;
+                      }).join('')}
                     </tbody>
                   </table>
-                ` : '<div style="padding: 15px; background: #f0f0f0; border: 1px solid #ccc; font-size: 12px; color: #666; text-align: center;">No subjects in this section</div>'}
+                ` : `
+                  <div style="padding: 20px; border: 1px solid #e0e0e0; background: #f9f9f9; text-align: center; font-size: 13px; color: #666; margin-top: 10px;">
+                    No subjects in this section
+                  </div>
+                `}
               </div>
-            `).join('')}
-          </div>
-          
-          <!-- Footer -->
-          <div style="margin-top: 60px; padding-top: 30px; border-top: 2px solid #333; font-size: 11px; color: #666; text-align: center;">
-            <div style="margin-bottom: 5px; font-weight: 500;">Report generated on ${new Date().toLocaleDateString('en-US')} at ${new Date().toLocaleTimeString('en-US')}</div>
-            <div style="font-style: italic;">Challenge Management System - Professional Report</div>
-          </div>
+            `;
+          }).join('')}
         </div>
       `;
 
@@ -1248,19 +1264,45 @@ const ChallengeDetails = () => {
       const imgWidth = 210; // A4 width in mm
       const pageHeight = 297; // A4 height in mm
       const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
-
-      // Add first page
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-
-      // Add additional pages if needed
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
+      
+      // Calculate proper page positioning to avoid cutting content
+      const totalPages = Math.ceil(imgHeight / pageHeight);
+      
+      // Add pages with proper positioning
+      for (let page = 0; page < totalPages; page++) {
+        if (page > 0) {
+          pdf.addPage();
+        }
+        
+        // Calculate the source y position in pixels
+        const sourceY = page * (pageHeight * canvas.width / imgWidth);
+        const sourceHeight = Math.min(
+          pageHeight * canvas.width / imgWidth,
+          canvas.height - sourceY
+        );
+        
+        // Create a temporary canvas for this page to avoid image cutting
+        const pageCanvas = document.createElement('canvas');
+        pageCanvas.width = canvas.width;
+        pageCanvas.height = Math.min(sourceHeight, canvas.height - sourceY);
+        const pageCtx = pageCanvas.getContext('2d');
+        
+        if (pageCtx && pageCanvas.height > 0) {
+          // Draw only the portion of the image needed for this page
+          pageCtx.drawImage(
+            canvas,
+            0, sourceY, canvas.width, pageCanvas.height,
+            0, 0, canvas.width, pageCanvas.height
+          );
+          
+          const pageImgData = pageCanvas.toDataURL('image/png');
+          const displayHeight = (pageCanvas.height * imgWidth) / canvas.width;
+          pdf.addImage(pageImgData, 'PNG', 0, 0, imgWidth, displayHeight);
+        } else {
+          // Fallback: use original method
+          const position = -sourceY * (imgWidth / canvas.width);
+          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        }
       }
 
       // Clean up
@@ -1372,11 +1414,11 @@ const ChallengeDetails = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 overflow-y-auto">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 overflow-y-auto overflow-x-hidden w-full">
       <ViewAllDetailsDialog />
       
       {/* Header */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-challenge/10 via-challenge/5 to-accent/10 p-8 backdrop-blur-sm border border-challenge/10">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-challenge/10 via-challenge/5 to-accent/10 p-8 backdrop-blur-sm border border-challenge/10 w-full min-w-0">
         <div className="absolute top-0 right-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-gradient-to-br from-challenge/20 to-transparent blur-2xl"></div>
         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-24 w-24 rounded-full bg-gradient-to-tr from-accent/20 to-transparent blur-xl"></div>
         
@@ -1429,9 +1471,9 @@ const ChallengeDetails = () => {
       </div>
 
       {/* Main Content */}
-      <div className="container mx-auto px-6 py-6 max-w-7xl">
+      <div className="container mx-auto px-6 py-6 max-w-7xl overflow-x-hidden w-full min-w-0">
         {/* Sections */}
-        <div className="space-y-6">
+        <div className="space-y-6 w-full min-w-0">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Sections</h2>
             <Button 
@@ -1503,52 +1545,60 @@ const ChallengeDetails = () => {
           )}
 
           {/* Sections Tabs */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <div className="relative flex items-center gap-2 mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full min-w-0">
+            <div className="relative flex items-center gap-2 mb-6 min-w-0 w-full">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => scrollTabs('left')}
-                className="h-9 w-9 p-0 rounded-full border-border/50 hover:border-border flex-shrink-0"
+                className="h-9 w-9 p-0 rounded-full border-border/50 hover:border-border flex-shrink-0 z-10"
               >
                 <ChevronLeft className="h-4 w-4" />
               </Button>
               
               <div 
                 ref={tabsContainerRef}
-                className="overflow-x-hidden flex-1"
+                className="flex-1 min-w-0 max-w-full overflow-x-auto scrollbar-hide"
                 style={{ 
-                  scrollbarWidth: 'none', 
-                  msOverflowStyle: 'none'
+                  scrollbarWidth: 'none',
+                  msOverflowStyle: 'none',
+                  WebkitOverflowScrolling: 'touch'
                 }}
               >
-                <div className="overflow-x-auto">
-                  <TabsList className="inline-flex w-auto min-w-max gap-2 bg-transparent p-1">
+                <style>{`
+                  .scrollbar-hide::-webkit-scrollbar {
+                    display: none;
+                  }
+                  .scrollbar-hide {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                  }
+                `}</style>
+                <TabsList className="inline-flex w-auto min-w-max gap-2 bg-transparent p-1 h-auto" style={{ maxWidth: 'none' }}>
+                  <TabsTrigger 
+                    value="overview" 
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 bg-background hover:bg-muted/50 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md whitespace-nowrap font-medium flex-shrink-0"
+                  >
+                    <Target className="h-4 w-4" />
+                    <span>Overview</span>
+                  </TabsTrigger>
+                  {sections.filter(Boolean).map((section, index) => (
                     <TabsTrigger 
-                      value="overview" 
-                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 bg-background hover:bg-muted/50 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md whitespace-nowrap font-medium"
+                      key={section?.id || `section-${index}`} 
+                      value={section?.id || `section-${index}`}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 bg-background hover:bg-muted/50 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md whitespace-nowrap font-medium flex-shrink-0"
                     >
-                      <Target className="h-4 w-4" />
-                      <span>Overview</span>
+                      <span>{section?.name || `Section ${index + 1}`}</span>
                     </TabsTrigger>
-                    {sections.filter(Boolean).map((section, index) => (
-                      <TabsTrigger 
-                        key={section?.id || `section-${index}`} 
-                        value={section?.id || `section-${index}`}
-                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-border/50 bg-background hover:bg-muted/50 transition-all duration-200 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:border-primary data-[state=active]:shadow-md whitespace-nowrap font-medium"
-                      >
-                        <span>{section?.name || `Section ${index + 1}`}</span>
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </div>
+                  ))}
+                </TabsList>
               </div>
               
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => scrollTabs('right')}
-                className="h-9 w-9 p-0 rounded-full border-border/50 hover:border-border flex-shrink-0"
+                className="h-9 w-9 p-0 rounded-full border-border/50 hover:border-border flex-shrink-0 z-10"
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
