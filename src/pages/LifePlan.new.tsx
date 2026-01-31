@@ -236,200 +236,344 @@ const LifePlan = () => {
       return;
     }
 
-    // Group plans by age range for better organization
-    const groupedPlans = plans.reduce((acc: { [key: string]: LifePlan[] }, plan) => {
-      const key = `${plan.startAge}-${plan.endAge}`;
-      if (!acc[key]) {
-        acc[key] = [];
-      }
-      acc[key].push(plan);
-      return acc;
-    }, {});
-
     try {
       toast.info('Generating PDF...');
 
-      // Helper function to format dates
-      const formatDate = (dateString: string | Date | undefined) => {
-        if (!dateString) return '';
-        try {
-          const d = new Date(dateString);
-          if (isNaN(d.getTime())) return '';
-          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        } catch {
-          return '';
-        }
-      };
-
-      // Create temporary container
-      const tempContainer = document.createElement('div');
-      tempContainer.style.position = 'fixed';
-      tempContainer.style.left = '-9999px';
-      tempContainer.style.width = '800px';
-      tempContainer.style.padding = '40px';
-      tempContainer.style.background = 'white';
-      tempContainer.style.fontFamily = 'Arial, sans-serif';
-      tempContainer.style.color = '#000000';
-      tempContainer.style.lineHeight = '1.5';
-      document.body.appendChild(tempContainer);
-
-      // Generate PDF HTML
-      const reportHTML = `
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      
+      // Calculate summary statistics
+      const totalPlans = plans.length;
+      const completedPlans = plans.filter(p => p.completed).length;
+      const pendingPlans = totalPlans - completedPlans;
+      
+      // Group by age ranges
+      const ageGroups = plans.reduce((acc: { [key: string]: number }, plan) => {
+        const key = `${plan.startAge}-${plan.endAge}`;
+        acc[key] = (acc[key] || 0) + 1;
+        return acc;
+      }, {});
+      
+      // Get unique target years
+      const targetYears = [...new Set(plans.map(p => p.targetYear))].sort((a, b) => a - b);
+      
+      // Calculate average age range
+      const avgStartAge = Math.round(plans.reduce((sum, p) => sum + p.startAge, 0) / totalPlans);
+      const avgEndAge = Math.round(plans.reduce((sum, p) => sum + p.endAge, 0) / totalPlans);
+      
+      // Create Summary Page HTML
+      const summaryHTML = `
         <style>
           * {
             box-sizing: border-box;
           }
-          @media print {
-            tr {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            td, th {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            table {
-              page-break-inside: auto !important;
-              break-inside: auto !important;
-            }
-            thead {
-              display: table-header-group !important;
-            }
-            tbody {
-              display: table-row-group !important;
-            }
-          }
         </style>
-        <div style="background: #ffffff; padding: 50px 60px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #000000; line-height: 1.6;">
-          <!-- Main Title -->
-          <div style="text-align: center; margin-bottom: 45px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; page-break-after: avoid;">
-            <h1 style="font-size: 26px; font-weight: 600; margin: 0; color: #000000; letter-spacing: -0.5px;">
+        <div style="background: #ffffff; padding: 40px 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #000000; line-height: 1.6; width: 800px; min-height: 1000px;">
+          <!-- Header Section -->
+          <div style="text-align: center; margin-bottom: 50px; padding-bottom: 25px; border-bottom: 2px solid #000000;">
+            <h1 style="font-size: 36px; font-weight: 700; margin: 0; color: #000000; letter-spacing: -1px;">
               LIFE PLAN TRACKER
             </h1>
-            <div style="font-size: 11px; color: #666; font-weight: 400; margin-top: 8px;">
+            <div style="font-size: 12px; color: #000000; margin-top: 10px; letter-spacing: 0.5px;">
               Generated on ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
           </div>
           
-          <!-- Plans by Age Groups -->
-          ${Object.entries(groupedPlans)
-            .sort(([keyA], [keyB]) => {
-              const [startA] = keyA.split('-').map(Number);
-              const [startB] = keyB.split('-').map(Number);
-              return startA - startB;
-            })
-            .map(([ageRange, agePlans], groupIndex) => {
-              const [startAge, endAge] = ageRange.split('-').map(Number);
-              const targetYear = agePlans[0]?.targetYear || '';
+          <!-- Summary Cards Section -->
+          <div style="margin-bottom: 40px;">
+            <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 25px 0; color: #000000; text-transform: uppercase; letter-spacing: 1px;">
+              Overview Summary
+            </h2>
+            
+            <!-- Stats Cards Row 1 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              <!-- Total Plans Card -->
+              <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 25px; background: #fafafa; border-left: 4px solid #000000;">
+                <div style="font-size: 10px; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                  Total Plans
+                </div>
+                <div style="font-size: 32px; font-weight: 700; color: #000000;">
+                  ${totalPlans}
+                </div>
+              </div>
               
-              return `
-                <div style="margin-bottom: ${groupIndex < Object.keys(groupedPlans).length - 1 ? '40px' : '0'}; page-break-inside: avoid;">
-                  <!-- Age Group Section -->
-                  <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px solid #d0d0d0; page-break-after: avoid;">
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                      <div>
-                        <h2 style="font-size: 14px; font-weight: 600; margin: 0 0 5px 0; color: #000000; text-transform: uppercase;">
-                          ${agePlans.length} Plan(s)
-                        </h2>
-                      </div>
-                      <div style="text-align: right;">
-                        <div style="font-size: 12px; color: #333; font-weight: 500;">
-                          ${startAge} - ${endAge} years
-                        </div>
-                        <div style="font-size: 11px; color: #666;">
-                          Target: ${targetYear}
-                        </div>
-                      </div>
+              <!-- Completed Plans Card -->
+              <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 25px; background: #fafafa; border-left: 4px solid #000000;">
+                <div style="font-size: 10px; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                  Completed Plans
+                </div>
+                <div style="font-size: 32px; font-weight: 700; color: #000000;">
+                  ${completedPlans}
+                </div>
+                <div style="font-size: 11px; color: #000000; margin-top: 5px;">
+                  ${totalPlans > 0 ? Math.round((completedPlans / totalPlans) * 100) : 0}% completion rate
+                </div>
+              </div>
+            </div>
+            
+            <!-- Stats Cards Row 2 -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+              <!-- Pending Plans Card -->
+              <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 25px; background: #fafafa; border-left: 4px solid #000000;">
+                <div style="font-size: 10px; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                  Pending Plans
+                </div>
+                <div style="font-size: 32px; font-weight: 700; color: #000000;">
+                  ${pendingPlans}
+                </div>
+              </div>
+              
+              <!-- Average Age Range Card -->
+              <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 25px; background: #fafafa; border-left: 4px solid #000000;">
+                <div style="font-size: 10px; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;">
+                  Average Age Range
+                </div>
+                <div style="font-size: 24px; font-weight: 700; color: #000000;">
+                  ${avgStartAge} - ${avgEndAge} Years
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Age Groups Section -->
+          <div style="margin-bottom: 40px;">
+            <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 20px 0; color: #000000; text-transform: uppercase; letter-spacing: 1px;">
+              Plans by Age Group
+            </h2>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px;">
+              ${Object.entries(ageGroups)
+                .sort(([keyA], [keyB]) => {
+                  const [startA] = keyA.split('-').map(Number);
+                  const [startB] = keyB.split('-').map(Number);
+                  return startA - startB;
+                })
+                .map(([ageRange, count]) => `
+                  <div style="border: 1px solid #e0e0e0; border-radius: 6px; padding: 15px; background: #ffffff;">
+                    <div style="font-size: 11px; color: #000000; margin-bottom: 5px;">
+                      ${ageRange} Years
+                    </div>
+                    <div style="font-size: 20px; font-weight: 700; color: #000000;">
+                      ${count} Plan${count !== 1 ? 's' : ''}
                     </div>
                   </div>
-                  
-                  <!-- Plans Table for this Age Group -->
-                  <table style="width: 100%; border-collapse: collapse; margin-top: 10px; border: none;">
-                    <thead style="display: table-header-group;">
-                      <tr>
-                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa;">Plan Description</th>
-                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 120px;">Age Range</th>
-                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 120px;">Target Year</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${agePlans.map((plan, index) => {
-                        return `
-                          <tr style="border-bottom: 1px solid #e8e8e8; page-break-inside: avoid !important; break-inside: avoid !important;">
-                            <td style="padding: 12px 16px; font-size: 13px; color: #000000; word-wrap: break-word; overflow-wrap: break-word; border-bottom: 1px solid #e8e8e8; page-break-inside: avoid !important; vertical-align: top;">
-                              ${plan.description || 'No description'}
-                            </td>
-                            <td style="padding: 12px 16px; font-size: 13px; color: #333; border-bottom: 1px solid #e8e8e8; white-space: nowrap; page-break-inside: avoid !important; vertical-align: top;">
-                              ${plan.startAge} - ${plan.endAge} years
-                            </td>
-                            <td style="padding: 12px 16px; font-size: 13px; color: #333; border-bottom: 1px solid #e8e8e8; white-space: nowrap; page-break-inside: avoid !important; vertical-align: top;">
-                              ${plan.targetYear}
-                            </td>
-                          </tr>
-                        `;
-                      }).join('')}
-                    </tbody>
-                  </table>
-                </div>
-              `;
-            }).join('')}
+                `).join('')}
+            </div>
+          </div>
+          
+          <!-- Target Years Section -->
+          <div style="margin-bottom: 40px;">
+            <h2 style="font-size: 18px; font-weight: 600; margin: 0 0 20px 0; color: #000000; text-transform: uppercase; letter-spacing: 1px;">
+              Target Years
+            </h2>
+            <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+              ${targetYears.map(year => {
+                const yearPlans = plans.filter(p => p.targetYear === year).length;
+                return `
+                  <div style="border: 1px solid #e0e0e0; border-radius: 6px; padding: 12px 18px; background: #ffffff; display: inline-block;">
+                    <div style="font-size: 14px; font-weight: 600; color: #000000;">
+                      ${year}
+                    </div>
+                    <div style="font-size: 10px; color: #000000; margin-top: 2px;">
+                      ${yearPlans} plan${yearPlans !== 1 ? 's' : ''}
+                    </div>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+          
+          <!-- Footer -->
+          <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
+            <div style="font-size: 10px; color: #000000;">
+              Summary Page
+            </div>
+          </div>
         </div>
       `;
-
-      tempContainer.innerHTML = reportHTML;
-
-      // Generate PDF
-      const canvas = await html2canvas(tempContainer, {
+      
+      // Create and render summary page
+      const summaryContainer = document.createElement('div');
+      summaryContainer.style.position = 'fixed';
+      summaryContainer.style.left = '-9999px';
+      summaryContainer.style.width = '800px';
+      summaryContainer.style.background = 'white';
+      summaryContainer.style.fontFamily = 'Arial, sans-serif';
+      summaryContainer.innerHTML = summaryHTML;
+      document.body.appendChild(summaryContainer);
+      
+      // Wait for content to render
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      // Generate canvas for summary page
+      const summaryCanvas = await html2canvas(summaryContainer, {
         useCORS: true,
         logging: false,
         background: '#ffffff',
         width: 800,
-        height: tempContainer.scrollHeight
+        height: summaryContainer.scrollHeight,
+        scale: 2,
+        windowWidth: 800,
+        windowHeight: summaryContainer.scrollHeight
       });
-
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
       
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      // Calculate image dimensions to fit exactly on one page
+      const summaryImgHeight = (summaryCanvas.height * imgWidth) / summaryCanvas.width;
+      const availableHeight = pageHeight - 20;
+      let finalSummaryHeight = summaryImgHeight;
+      let finalSummaryWidth = imgWidth;
+      let summaryXOffset = 0;
       
-      // Calculate proper page positioning
-      const totalPages = Math.ceil(imgHeight / pageHeight);
-      
-      // Add pages with proper positioning
-      for (let page = 0; page < totalPages; page++) {
-        if (page > 0) {
-          pdf.addPage();
-        }
-        
-        const sourceY = page * (pageHeight * canvas.width / imgWidth);
-        const sourceHeight = Math.min(
-          pageHeight * canvas.width / imgWidth,
-          canvas.height - sourceY
-        );
-        
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = Math.min(sourceHeight, canvas.height - sourceY);
-        const pageCtx = pageCanvas.getContext('2d');
-        
-        if (pageCtx && pageCanvas.height > 0) {
-          pageCtx.drawImage(
-            canvas,
-            0, sourceY, canvas.width, pageCanvas.height,
-            0, 0, canvas.width, pageCanvas.height
-          );
-          
-          const pageImgData = pageCanvas.toDataURL('image/png');
-          const displayHeight = (pageCanvas.height * imgWidth) / canvas.width;
-          pdf.addImage(pageImgData, 'PNG', 0, 0, imgWidth, displayHeight);
-        }
+      if (summaryImgHeight > availableHeight) {
+        const scale = availableHeight / summaryImgHeight;
+        finalSummaryHeight = availableHeight;
+        finalSummaryWidth = imgWidth * scale;
+        summaryXOffset = (imgWidth - finalSummaryWidth) / 2;
       }
-
-      // Clean up
-      document.body.removeChild(tempContainer);
+      
+      // Add summary page to PDF
+      pdf.addImage(summaryCanvas.toDataURL('image/png', 1.0), 'PNG', summaryXOffset, 10, finalSummaryWidth, finalSummaryHeight);
+      
+      // Clean up summary container
+      document.body.removeChild(summaryContainer);
+      
+      // Sort plans for consistent ordering
+      const sortedPlans = [...plans].sort((a, b) => a.startAge - b.startAge || a.targetYear - b.targetYear);
+      
+      // Generate each plan as a separate page
+      for (let planIndex = 0; planIndex < sortedPlans.length; planIndex++) {
+        const plan = sortedPlans[planIndex];
+        
+        // Escape HTML in description
+        const safeDescription = (plan.description || 'No description')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/&/g, '&amp;');
+        
+        // Split description by numbers to create a list-like format
+        const descriptionLines = safeDescription.split(/(?=\d+\.)/).filter(line => line.trim());
+        
+        // Create HTML for single plan page
+        const singlePlanHTML = `
+          <style>
+            * {
+              box-sizing: border-box;
+            }
+          </style>
+          <div style="background: #ffffff; padding: 40px 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #000000; line-height: 1.6; width: 800px; min-height: 1000px; display: flex; flex-direction: column;">
+            <!-- Header Section -->
+            <div style="text-align: center; margin-bottom: 40px; padding-bottom: 25px; border-bottom: 2px solid #000000;">
+              <div style="font-size: 10px; color: #000000; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">
+                Life Plan Tracker
+              </div>
+              <h1 style="font-size: 36px; font-weight: 700; margin: 0; color: #000000; letter-spacing: -1px;">
+                PLAN #${planIndex + 1}
+              </h1>
+              <div style="font-size: 11px; color: #000000; margin-top: 10px; letter-spacing: 0.5px;">
+                Generated on ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              </div>
+            </div>
+            
+            <!-- Plan Details Section -->
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center;">
+              <!-- Age Group Info -->
+              <div style="background: #f8f8f8; padding: 25px; border-left: 4px solid #000000; margin-bottom: 30px; border-radius: 4px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px;">
+                  <div>
+                    <div style="font-size: 10px; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                      Age Range
+                    </div>
+                    <div style="font-size: 24px; font-weight: 700; color: #000000;">
+                      ${plan.startAge} - ${plan.endAge} Years
+                    </div>
+                  </div>
+                  <div style="text-align: right;">
+                    <div style="font-size: 10px; color: #000000; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px;">
+                      Target Year
+                    </div>
+                    <div style="font-size: 24px; font-weight: 700; color: #000000;">
+                      ${plan.targetYear}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Description Section -->
+              <div style="flex: 1;">
+                <div style="font-size: 11px; color: #000000; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 20px; font-weight: 600;">
+                  Plan Description
+                </div>
+                <div style="font-size: 16px; color: #000000; line-height: 2; word-wrap: break-word; overflow-wrap: break-word; padding: 20px; background: #fafafa; border-radius: 4px; min-height: 200px;">
+                  ${descriptionLines.length > 1 
+                    ? descriptionLines.map(line => `<div style="margin-bottom: 12px; padding-left: 10px; border-left: 3px solid #000000; padding-left: 15px;">${line.trim()}</div>`).join('')
+                    : `<div style="padding-left: 10px;">${safeDescription}</div>`
+                  }
+                </div>
+              </div>
+            </div>
+            
+            <!-- Footer -->
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
+              <div style="font-size: 10px; color: #000000;">
+                Page ${planIndex + 2} of ${sortedPlans.length + 1}
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Create temporary container for this plan
+        const planContainer = document.createElement('div');
+        planContainer.style.position = 'fixed';
+        planContainer.style.left = '-9999px';
+        planContainer.style.width = '800px';
+        planContainer.style.background = 'white';
+        planContainer.style.fontFamily = 'Arial, sans-serif';
+        planContainer.innerHTML = singlePlanHTML;
+        document.body.appendChild(planContainer);
+        
+        // Wait for content to render
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        // Generate canvas for this plan
+        const canvas = await html2canvas(planContainer, {
+          useCORS: true,
+          logging: false,
+          background: '#ffffff',
+          width: 800,
+          height: planContainer.scrollHeight,
+          scale: 2,
+          windowWidth: 800,
+          windowHeight: planContainer.scrollHeight
+        });
+        
+        // Add new page for each plan (summary is already on first page)
+        pdf.addPage();
+        
+        // Calculate image dimensions to fit exactly on one page
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        // Scale to fit page height with margins (10mm top and bottom)
+        const availableHeight = pageHeight - 20; // 10mm margin top and bottom
+        let finalHeight = imgHeight;
+        let finalWidth = imgWidth;
+        let xOffset = 0;
+        let yOffset = 10;
+        
+        // If content is taller than available space, scale it down
+        if (imgHeight > availableHeight) {
+          const scale = availableHeight / imgHeight;
+          finalHeight = availableHeight;
+          finalWidth = imgWidth * scale;
+          xOffset = (imgWidth - finalWidth) / 2; // Center horizontally
+        }
+        
+        // Add image to PDF - centered on page
+        pdf.addImage(canvas.toDataURL('image/png', 1.0), 'PNG', xOffset, yOffset, finalWidth, finalHeight);
+        
+        // Clean up this plan's container
+        document.body.removeChild(planContainer);
+      }
 
       // Download PDF
       const fileName = `life-plan-tracker-${new Date().toISOString().split('T')[0]}.pdf`;
