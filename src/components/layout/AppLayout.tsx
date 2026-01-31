@@ -14,10 +14,10 @@ export function AppLayout({ children }: AppLayoutProps) {
 
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-background overflow-x-hidden">
+      <div className="h-screen flex w-full bg-background overflow-hidden">
         <AppSidebar />
-        <main className="flex-1 flex flex-col min-w-0 overflow-x-hidden">
-          <header className="h-16 flex items-center justify-between px-6 border-b bg-card min-w-0">
+        <main className="flex-1 flex flex-col min-w-0 overflow-hidden h-screen">
+          <header className="h-16 flex items-center justify-between px-6 border-b bg-card min-w-0 flex-shrink-0 z-50 backdrop-blur-sm bg-card/95">
             <div className="flex items-center gap-4 min-w-0">
               <SidebarTrigger className="ml-2 flex-shrink-0">
                 <Menu className="h-4 w-4" />
@@ -35,7 +35,7 @@ export function AppLayout({ children }: AppLayoutProps) {
               <User className="h-5 w-5" />
             </Button>
           </header>
-          <div className="flex-1 p-6 overflow-x-hidden min-w-0 w-full max-w-full">
+          <div className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0 w-full max-w-full">
             {children}
           </div>
         </main>

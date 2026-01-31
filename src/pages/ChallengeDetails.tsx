@@ -1145,168 +1145,216 @@ const ChallengeDetails = () => {
         }
       };
 
-      // Generate fresh, minimal professional report HTML
-      const reportHTML = `
+      // Create PDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      
+      // Filter out empty sections
+      const validSections = currentSections.filter(Boolean);
+      
+      // Generate title page first
+      const titleHTML = `
         <style>
           * {
             box-sizing: border-box;
           }
-          @media print {
-            thead {
-              display: table-header-group !important;
-            }
-            tbody {
-              display: table-row-group !important;
-            }
-            tr {
-              page-break-inside: avoid !important;
-              break-inside: avoid !important;
-            }
-            table {
-              page-break-inside: auto !important;
-              break-inside: auto !important;
-            }
-            .section-header {
-              page-break-after: avoid !important;
-            }
-          }
         </style>
-        <div style="background: #ffffff; padding: 50px 60px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #000000; line-height: 1.6;">
-          <!-- Main Title -->
-          <div style="text-align: center; margin-bottom: 45px; padding-bottom: 15px; border-bottom: 1px solid #e0e0e0; page-break-after: avoid;">
-            <h1 style="font-size: 26px; font-weight: 600; margin: 0; color: #000000; letter-spacing: -0.5px;">
-              SECTIONS AND SUBJECTS
+        <div style="background: #ffffff; padding: 40px 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #000000; line-height: 1.6; width: 800px; min-height: 1000px; display: flex; flex-direction: column; justify-content: center; align-items: center;">
+          <div style="text-align: center;">
+            <h1 style="font-size: 36px; font-weight: 700; margin: 0 0 20px 0; color: #000000; letter-spacing: -1px;">
+              ${challenge.name || 'CHALLENGE REPORT'}
             </h1>
-            <div style="font-size: 11px; color: #666; font-weight: 400; margin-top: 8px;">
+            <div style="font-size: 14px; color: #000000; margin-top: 10px; letter-spacing: 0.5px;">
+              Sections and Subjects
+            </div>
+            <div style="font-size: 11px; color: #000000; margin-top: 30px; letter-spacing: 0.5px;">
               Generated on ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
             </div>
-          </div>
-          
-          <!-- Sections with Tables -->
-          ${currentSections.filter(Boolean).map((section, sectionIndex) => {
-            const subjects = section?.subjects || [];
-            const subjectCount = subjects.length;
-            
-            return `
-              <div style="margin-bottom: 55px; page-break-inside: avoid;">
-                <!-- Section Header -->
-                <div class="section-header" style="margin-bottom: 18px; padding-bottom: 10px; border-bottom: 1px solid #d0d0d0;">
-                  <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 5px 0; color: #000000; text-transform: uppercase; letter-spacing: 0.5px;">
-                    SECTION ${sectionIndex + 1}: ${section?.name || 'Untitled Section'}
-                  </h2>
-                  <p style="font-size: 12px; margin: 0; color: #666; font-weight: 400;">
-                    ${subjectCount} subject(s) in this section
-                  </p>
-                </div>
-                
-                <!-- Subjects Table -->
-                ${subjectCount > 0 ? `
-                  <table style="width: 100%; border-collapse: collapse; margin-top: 10px; border: none;">
-                    <thead style="display: table-header-group;">
-                      <tr>
-                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa;">Topic/Section Name</th>
-                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 130px;">Status</th>
-                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 200px;">Date Range</th>
-                        <th style="padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa;">Description</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${subjects.map((subject: any, subjectIndex: number) => {
-                        const startDate = subject.startDate ? formatDate(subject.startDate) : '';
-                        const endDate = subject.endDate ? formatDate(subject.endDate) : '';
-                        const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : startDate || endDate || 'No dates set';
-                        
-                        return `
-                          <tr style="border-bottom: 1px solid #e8e8e8;">
-                            <td style="padding: 12px 16px; font-size: 13px; color: #000000; word-wrap: break-word; overflow-wrap: break-word; border-bottom: 1px solid #e8e8e8;">
-                              ${subject.name || `Subject ${subjectIndex + 1}`}
-                            </td>
-                            <td style="padding: 12px 16px; font-size: 13px; color: #333; white-space: nowrap; border-bottom: 1px solid #e8e8e8;">
-                              ${getStatusDisplay(subject.status)}
-                            </td>
-                            <td style="padding: 12px 16px; font-size: 13px; color: #333; white-space: nowrap; border-bottom: 1px solid #e8e8e8;">
-                              ${dateRange}
-                            </td>
-                            <td style="padding: 12px 16px; font-size: 13px; color: #555; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.5; border-bottom: 1px solid #e8e8e8;">
-                              ${subject.description || 'No description'}
-                            </td>
-                          </tr>
-                        `;
-                      }).join('')}
-                    </tbody>
-                  </table>
-                ` : `
-                  <div style="padding: 20px; border: 1px solid #e0e0e0; background: #f9f9f9; text-align: center; font-size: 13px; color: #666; margin-top: 10px;">
-                    No subjects in this section
-                  </div>
-                `}
+            <div style="margin-top: 50px; padding-top: 30px; border-top: 1px solid #e0e0e0; width: 100%;">
+              <div style="font-size: 12px; color: #000000;">
+                Total Sections: <strong>${validSections.length}</strong>
               </div>
-            `;
-          }).join('')}
+            </div>
+          </div>
         </div>
       `;
-
-      tempContainer.innerHTML = reportHTML;
-
-      // Generate PDF
-      const canvas = await html2canvas(tempContainer, {
+      
+      // Create and render title page
+      const titleContainer = document.createElement('div');
+      titleContainer.style.position = 'fixed';
+      titleContainer.style.left = '-9999px';
+      titleContainer.style.width = '800px';
+      titleContainer.style.background = 'white';
+      titleContainer.style.fontFamily = 'Arial, sans-serif';
+      titleContainer.innerHTML = titleHTML;
+      document.body.appendChild(titleContainer);
+      
+      await new Promise(resolve => setTimeout(resolve, 150));
+      
+      const titleCanvas = await html2canvas(titleContainer, {
         useCORS: true,
         logging: false,
         background: '#ffffff',
         width: 800,
-        height: tempContainer.scrollHeight
+        height: titleContainer.scrollHeight,
+        scale: 2,
+        windowWidth: 800,
+        windowHeight: titleContainer.scrollHeight
       });
-
-      // Create PDF
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
       
-      const imgWidth = 210; // A4 width in mm
-      const pageHeight = 297; // A4 height in mm
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      const titleImgHeight = (titleCanvas.height * imgWidth) / titleCanvas.width;
+      const availableHeight = pageHeight - 20;
+      let finalTitleHeight = titleImgHeight;
+      let finalTitleWidth = imgWidth;
+      let titleXOffset = 0;
       
-      // Calculate proper page positioning to avoid cutting content
-      const totalPages = Math.ceil(imgHeight / pageHeight);
-      
-      // Add pages with proper positioning
-      for (let page = 0; page < totalPages; page++) {
-        if (page > 0) {
-          pdf.addPage();
-        }
-        
-        // Calculate the source y position in pixels
-        const sourceY = page * (pageHeight * canvas.width / imgWidth);
-        const sourceHeight = Math.min(
-          pageHeight * canvas.width / imgWidth,
-          canvas.height - sourceY
-        );
-        
-        // Create a temporary canvas for this page to avoid image cutting
-        const pageCanvas = document.createElement('canvas');
-        pageCanvas.width = canvas.width;
-        pageCanvas.height = Math.min(sourceHeight, canvas.height - sourceY);
-        const pageCtx = pageCanvas.getContext('2d');
-        
-        if (pageCtx && pageCanvas.height > 0) {
-          // Draw only the portion of the image needed for this page
-          pageCtx.drawImage(
-            canvas,
-            0, sourceY, canvas.width, pageCanvas.height,
-            0, 0, canvas.width, pageCanvas.height
-          );
-          
-          const pageImgData = pageCanvas.toDataURL('image/png');
-          const displayHeight = (pageCanvas.height * imgWidth) / canvas.width;
-          pdf.addImage(pageImgData, 'PNG', 0, 0, imgWidth, displayHeight);
-        } else {
-          // Fallback: use original method
-          const position = -sourceY * (imgWidth / canvas.width);
-          pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        }
+      if (titleImgHeight > availableHeight) {
+        const scale = availableHeight / titleImgHeight;
+        finalTitleHeight = availableHeight;
+        finalTitleWidth = imgWidth * scale;
+        titleXOffset = (imgWidth - finalTitleWidth) / 2;
       }
-
-      // Clean up
-      document.body.removeChild(tempContainer);
+      
+      pdf.addImage(titleCanvas.toDataURL('image/png', 1.0), 'PNG', titleXOffset, 10, finalTitleWidth, finalTitleHeight);
+      document.body.removeChild(titleContainer);
+      
+      // Generate each section as a separate page
+      for (let sectionIndex = 0; sectionIndex < validSections.length; sectionIndex++) {
+        const section = validSections[sectionIndex];
+        const subjects = section?.subjects || [];
+        const subjectCount = subjects.length;
+        
+        // Create HTML for single section page
+        const sectionHTML = `
+          <style>
+            * {
+              box-sizing: border-box;
+            }
+            @media print {
+              thead {
+                display: table-header-group !important;
+              }
+              tbody {
+                display: table-row-group !important;
+              }
+              tr {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+              }
+            }
+          </style>
+          <div style="background: #ffffff; padding: 40px 50px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; color: #000000; line-height: 1.6; width: 800px; min-height: 1000px; display: flex; flex-direction: column;">
+            <!-- Header Section -->
+            <div style="text-align: center; margin-bottom: 40px; padding-bottom: 25px; border-bottom: 2px solid #000000;">
+              <div style="font-size: 10px; color: #000000; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 10px;">
+                Challenge Report
+              </div>
+              <h1 style="font-size: 36px; font-weight: 700; margin: 0; color: #000000; letter-spacing: -1px;">
+                SECTION ${sectionIndex + 1}
+              </h1>
+              <div style="font-size: 18px; color: #000000; margin-top: 10px; font-weight: 600;">
+                ${section?.name || 'Untitled Section'}
+              </div>
+            </div>
+            
+            <!-- Section Info -->
+            <div style="background: #f8f8f8; padding: 20px; border-left: 4px solid #000000; margin-bottom: 30px; border-radius: 4px;">
+              <div style="font-size: 12px; color: #000000;">
+                <strong>${subjectCount}</strong> subject${subjectCount !== 1 ? 's' : ''} in this section
+              </div>
+            </div>
+            
+            <!-- Subjects Table -->
+            <div style="flex: 1;">
+              ${subjectCount > 0 ? `
+                <table style="width: 100%; border-collapse: collapse; border: none;">
+                  <thead style="display: table-header-group !important;">
+                    <tr>
+                      <th style="padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 25%;">Topic/Section Name</th>
+                      <th style="padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 25%;">Date Range</th>
+                      <th style="padding: 14px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #000000; border-bottom: 1px solid #d0d0d0; background: #fafafa; width: 50%;">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${subjects.map((subject: any, subjectIndex: number) => {
+                      const startDate = subject.startDate ? formatDate(subject.startDate) : '';
+                      const endDate = subject.endDate ? formatDate(subject.endDate) : '';
+                      const dateRange = startDate && endDate ? `${startDate} - ${endDate}` : startDate || endDate || 'No dates set';
+                      
+                      return `
+                        <tr style="border-bottom: 1px solid #e8e8e8; page-break-inside: avoid !important;">
+                          <td style="padding: 14px 16px; font-size: 13px; color: #000000; word-wrap: break-word; overflow-wrap: break-word; border-bottom: 1px solid #e8e8e8; vertical-align: top;">
+                            ${subject.name || `Subject ${subjectIndex + 1}`}
+                          </td>
+                          <td style="padding: 14px 16px; font-size: 13px; color: #000000; white-space: nowrap; border-bottom: 1px solid #e8e8e8; vertical-align: top;">
+                            ${dateRange}
+                          </td>
+                          <td style="padding: 14px 16px; font-size: 13px; color: #000000; word-wrap: break-word; overflow-wrap: break-word; line-height: 1.6; border-bottom: 1px solid #e8e8e8; vertical-align: top;">
+                            ${subject.description || 'No description'}
+                          </td>
+                        </tr>
+                      `;
+                    }).join('')}
+                  </tbody>
+                </table>
+              ` : `
+                <div style="padding: 40px; border: 1px solid #e0e0e0; background: #fafafa; text-align: center; font-size: 14px; color: #000000; border-radius: 4px;">
+                  No subjects in this section
+                </div>
+              `}
+            </div>
+            
+            <!-- Footer -->
+            <div style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #e0e0e0; text-align: center;">
+              <div style="font-size: 10px; color: #000000;">
+                Page ${sectionIndex + 2} of ${validSections.length + 1}
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Create temporary container for this section
+        const sectionContainer = document.createElement('div');
+        sectionContainer.style.position = 'fixed';
+        sectionContainer.style.left = '-9999px';
+        sectionContainer.style.width = '800px';
+        sectionContainer.style.background = 'white';
+        sectionContainer.style.fontFamily = 'Arial, sans-serif';
+        sectionContainer.innerHTML = sectionHTML;
+        document.body.appendChild(sectionContainer);
+        
+        await new Promise(resolve => setTimeout(resolve, 150));
+        
+        const sectionCanvas = await html2canvas(sectionContainer, {
+          useCORS: true,
+          logging: false,
+          background: '#ffffff',
+          width: 800,
+          height: sectionContainer.scrollHeight,
+          scale: 2,
+          windowWidth: 800,
+          windowHeight: sectionContainer.scrollHeight
+        });
+        
+        // Add new page for each section
+        pdf.addPage();
+        
+        const sectionImgHeight = (sectionCanvas.height * imgWidth) / sectionCanvas.width;
+        let finalSectionHeight = sectionImgHeight;
+        let finalSectionWidth = imgWidth;
+        let sectionXOffset = 0;
+        
+        if (sectionImgHeight > availableHeight) {
+          const scale = availableHeight / sectionImgHeight;
+          finalSectionHeight = availableHeight;
+          finalSectionWidth = imgWidth * scale;
+          sectionXOffset = (imgWidth - finalSectionWidth) / 2;
+        }
+        
+        pdf.addImage(sectionCanvas.toDataURL('image/png', 1.0), 'PNG', sectionXOffset, 10, finalSectionWidth, finalSectionHeight);
+        document.body.removeChild(sectionContainer);
+      }
 
       // Download PDF
       const fileName = `${challenge.name || 'challenge'}-report-${new Date().toISOString().split('T')[0]}.pdf`;
