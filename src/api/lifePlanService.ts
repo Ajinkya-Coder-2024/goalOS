@@ -2,40 +2,39 @@ import axios from 'axios';
 
 const API_URL = 'http://localhost:5000/api/life-plans';
 
-// Get auth token from localStorage
 const getAuthToken = () => {
   return localStorage.getItem('token');
 };
 
-// Set auth header
 const getAuthHeader = () => ({
   headers: {
     Authorization: `Bearer ${getAuthToken()}`,
   },
 });
 
+export type LifePlanPayload = {
+  goal: string;
+  startAge: number;
+  endAge: number;
+  startYear: number;
+  endYear: number;
+  detailItems: string[];
+  completed?: boolean;
+};
+
 export const getLifePlans = async () => {
   const response = await axios.get(API_URL, getAuthHeader());
   return response.data.data;
 };
 
-export const createLifePlan = async (planData: {
-  startAge: number;
-  endAge: number;
-  targetYear: number;
-  description: string;
-}) => {
+export const createLifePlan = async (planData: LifePlanPayload) => {
   const response = await axios.post(API_URL, planData, getAuthHeader());
   return response.data.data;
 };
 
 export const updateLifePlan = async (
   id: string,
-  planData: {
-    startAge?: number;
-    endAge?: number;
-    targetYear?: number;
-    description?: string;
+  planData: Partial<LifePlanPayload> & {
     completed?: boolean;
     completedAt?: string | null;
   }
