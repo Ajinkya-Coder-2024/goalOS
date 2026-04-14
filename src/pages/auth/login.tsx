@@ -9,7 +9,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { Loader2, Eye, EyeOff, Mail } from 'lucide-react';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState('ajinkya.inchanalkar2001@gmail.com');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);

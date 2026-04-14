@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
@@ -184,6 +184,7 @@ interface SubjectFormData {
   subjects: Array<{
     name: string;
     description: string;
+    detailItems: string[];
     startDate: string;
     endDate: string;
     fieldType: 'description' | 'date' | 'none';
@@ -238,6 +239,7 @@ const ChallengeDetails = () => {
     subjects: [{
       name: '',
       description: '',
+      detailItems: [''],
       startDate: new Date().toISOString().split('T')[0],
       endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       fieldType: 'date' // Default to date type to show date fields
@@ -263,10 +265,33 @@ const ChallengeDetails = () => {
   const [challenge, setChallenge] = useState<Challenge | undefined>(
     location.state?.challenge || mockChallenges.find(c => c.id === challengeId || c._id === challengeId)
   );
+  const [isChallengeLoading, setIsChallengeLoading] = useState<boolean>(true);
   
   // Log for debugging
   console.log('Challenge ID from URL:', challengeId);
   console.log('Challenge from state:', challenge);
+
+  useEffect(() => {
+    const loadChallenge = async () => {
+      if (!challengeId) {
+        setIsChallengeLoading(false);
+        return;
+      }
+
+      try {
+        setIsChallengeLoading(true);
+        const freshChallenge = await getChallenge(challengeId);
+        setChallenge(freshChallenge as Challenge);
+      } catch (error) {
+        console.error('Error fetching challenge details:', error);
+        toast.error('Failed to load challenge details');
+      } finally {
+        setIsChallengeLoading(false);
+      }
+    };
+
+    loadChallenge();
+  }, [challengeId]);
 
   // Add section mutation
   const addSectionMutation = useMutation<SectionResponse, Error, string>({
@@ -514,6 +539,63 @@ const ChallengeDetails = () => {
     }
   };
 
+  const parseDetailItemsFromDescription = (description?: string): string[] => {
+    if (!description?.trim()) return [''];
+    const lines = description
+      .split('\n')
+      .map((line) => line.replace(/^•\s*/, '').trim())
+      .filter(Boolean);
+    return lines.length ? lines : [''];
+  };
+
+  const buildDescriptionFromDetailItems = (items: string[]): string => {
+    const cleaned = items.map((item) => item.trim()).filter(Boolean);
+    return cleaned.map((item) => `• ${item}`).join('\n');
+  };
+
+  const getDetailItemsForDisplay = (description?: string): string[] => {
+    if (!description?.trim()) return [];
+    return description
+      .split('\n')
+      .map((line) => line.replace(/^•\s*/, '').trim())
+      .filter(Boolean);
+  };
+
+  const updateSubjectDetailItem = (subjectIndex: number, detailIndex: number, value: string) => {
+    setNewSubject((prev) => {
+      const updatedSubjects = [...prev.subjects];
+      const existingItems = updatedSubjects[subjectIndex].detailItems || [''];
+      updatedSubjects[subjectIndex] = {
+        ...updatedSubjects[subjectIndex],
+        detailItems: existingItems.map((item, idx) => (idx === detailIndex ? value : item))
+      };
+      return { ...prev, subjects: updatedSubjects };
+    });
+  };
+
+  const addSubjectDetailItem = (subjectIndex: number) => {
+    setNewSubject((prev) => {
+      const updatedSubjects = [...prev.subjects];
+      updatedSubjects[subjectIndex] = {
+        ...updatedSubjects[subjectIndex],
+        detailItems: [...(updatedSubjects[subjectIndex].detailItems || ['']), '']
+      };
+      return { ...prev, subjects: updatedSubjects };
+    });
+  };
+
+  const removeSubjectDetailItem = (subjectIndex: number, detailIndex: number) => {
+    setNewSubject((prev) => {
+      const updatedSubjects = [...prev.subjects];
+      const items = updatedSubjects[subjectIndex].detailItems || [''];
+      updatedSubjects[subjectIndex] = {
+        ...updatedSubjects[subjectIndex],
+        detailItems: items.length <= 1 ? items : items.filter((_, idx) => idx !== detailIndex)
+      };
+      return { ...prev, subjects: updatedSubjects };
+    });
+  };
+
   const formatDate = (dateString: string | Date): string => {
     try {
       if (!dateString) return 'No date';
@@ -719,6 +801,7 @@ const ChallengeDetails = () => {
       subjects: [{
         name: subjectToEdit.name,
         description: subjectToEdit.description || '',
+        detailItems: parseDetailItemsFromDescription(subjectToEdit.description),
         startDate: formatDateForInput(subjectToEdit.startDate),
         endDate: formatDateForInput(subjectToEdit.endDate),
         fieldType: subjectToEdit.fieldType || 'date'
@@ -759,7 +842,7 @@ const ChallengeDetails = () => {
         subjectId,
         {
           name: subjectData.name.trim(),
-          description: subjectData.description?.trim() || '',
+          description: buildDescriptionFromDetailItems(subjectData.detailItems || []),
           startDate: subjectData.startDate,
           endDate: subjectData.endDate,
           fieldType: subjectData.fieldType || 'date'
@@ -803,6 +886,7 @@ const ChallengeDetails = () => {
         subjects: [{
           name: '',
           description: '',
+          detailItems: [''],
           startDate: new Date().toISOString().split('T')[0],
           endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           fieldType: 'date'
@@ -825,6 +909,7 @@ const ChallengeDetails = () => {
         {
           name: '',
           description: '',
+          detailItems: [''],
           startDate: new Date().toISOString().split('T')[0],
           endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           fieldType: 'date'
@@ -859,7 +944,7 @@ const ChallengeDetails = () => {
       .filter((s) => s.name && s.name.trim() !== '')
       .map((s) => ({
         name: s.name.trim(),
-        description: (s.description || '').trim(),
+        description: buildDescriptionFromDetailItems(s.detailItems || []),
         startDate: s.startDate,
         endDate: s.endDate,
         fieldType: s.fieldType || 'none'
@@ -908,6 +993,7 @@ const ChallengeDetails = () => {
         subjects: [{
           name: '',
           description: '',
+          detailItems: [''],
           startDate: new Date().toISOString().split('T')[0],
           endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
           fieldType: 'description'
@@ -925,6 +1011,16 @@ const ChallengeDetails = () => {
     }
   };
   
+  if (isChallengeLoading) {
+    return (
+      <div className="container mx-auto p-6 max-w-7xl">
+        <div className="flex items-center justify-center py-16">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
   // If challenge not found, show error
   if (!challenge) {
     return (
@@ -1002,16 +1098,38 @@ const ChallengeDetails = () => {
             </div>
 
             {subject.fieldType === 'description' && (
-              <div>
-                <Label htmlFor={`subject-desc-${index}`}>Description (Optional)</Label>
-                <Input
-                  id={`subject-desc-${index}`}
-                  name={`subject-description`}
-                  value={subject.description}
-                  onChange={(e) => handleSubjectInputChange(e, index)}
-                  placeholder="Enter description"
-                  className="mt-1"
-                />
+              <div className="space-y-2">
+                <Label>Details (Optional)</Label>
+                <p className="text-xs text-muted-foreground">Add one or more bullet points for this subject.</p>
+                <div className="space-y-2">
+                  {(subject.detailItems || ['']).map((item, detailIndex) => (
+                    <div key={`${index}-${detailIndex}`} className="flex gap-2 items-start">
+                      <span className="text-muted-foreground pt-2 shrink-0 select-none" aria-hidden>
+                        •
+                      </span>
+                      <Input
+                        placeholder={`Point ${detailIndex + 1}`}
+                        value={item}
+                        onChange={(e) => updateSubjectDetailItem(index, detailIndex, e.target.value)}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0 text-muted-foreground hover:text-destructive"
+                        disabled={(subject.detailItems || ['']).length <= 1}
+                        onClick={() => removeSubjectDetailItem(index, detailIndex)}
+                        aria-label="Remove point"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" className="gap-1" onClick={() => addSubjectDetailItem(index)}>
+                  <Plus className="h-4 w-4" />
+                  Add point
+                </Button>
               </div>
             )}
 
@@ -1075,6 +1193,7 @@ const ChallengeDetails = () => {
                   subjects: [{
                     name: '',
                     description: '',
+                    detailItems: [''],
                     startDate: new Date().toISOString().split('T')[0],
                     endDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
                     fieldType: 'date'
@@ -1436,9 +1555,11 @@ const ChallengeDetails = () => {
                         </span>
                       </div>
                       {subject.description && (
-                        <p className="text-sm text-muted-foreground mt-1">
-                          {subject.description}
-                        </p>
+                        <ul className="text-sm text-muted-foreground mt-1 list-disc pl-5 space-y-1">
+                          {getDetailItemsForDisplay(subject.description).map((line, i) => (
+                            <li key={`${subject.id || subject._id || 'subject'}-details-${i}`}>{line}</li>
+                          ))}
+                        </ul>
                       )}
                       <div className="flex items-center mt-1 text-xs text-muted-foreground">
                         {subject.startDate && (
@@ -1822,7 +1943,11 @@ const ChallengeDetails = () => {
                                         </div>
                                       )}
                                       {subject.description && (
-                                        <p className="text-sm text-muted-foreground">{subject.description}</p>
+                                        <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                                          {getDetailItemsForDisplay(subject.description).map((line, i) => (
+                                            <li key={`${subject.id || subject._id || 'subject'}-line-${i}`}>{line}</li>
+                                          ))}
+                                        </ul>
                                       )}
                                     </div>
                                     <div className="flex items-center gap-1 ml-4">
