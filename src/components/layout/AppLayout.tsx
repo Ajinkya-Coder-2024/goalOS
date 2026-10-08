@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "./AppSidebar";
 import { Button } from "@/components/ui/button";
-import { Menu, User } from "lucide-react";
+import { Menu, Moon, Sun, User } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface AppLayoutProps {
@@ -11,6 +11,29 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const navigate = useNavigate();
+  const [dark, setDark] = useState(() => {
+    if (typeof window !== "undefined") {
+      return document.documentElement.classList.contains("dark");
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (dark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  }, [dark]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("theme");
+    if (stored === "dark" || (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches)) {
+      setDark(true);
+    }
+  }, []);
 
   return (
     <SidebarProvider>
@@ -26,14 +49,25 @@ export function AppLayout({ children }: AppLayoutProps) {
                 GoalOS
               </h1>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => navigate('/profile')}
-              className="hover:bg-accent hover:text-accent-foreground flex-shrink-0"
-            >
-              <User className="h-5 w-5" />
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setDark(!dark)}
+                className="hover:bg-accent hover:text-accent-foreground flex-shrink-0"
+                aria-label="Toggle night mode"
+              >
+                {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+              </Button>
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={() => navigate('/profile')}
+                className="hover:bg-accent hover:text-accent-foreground flex-shrink-0"
+              >
+                <User className="h-5 w-5" />
+              </Button>
+            </div>
           </header>
           <div className="flex-1 p-6 overflow-y-auto overflow-x-hidden min-w-0 w-full max-w-full">
             {children}

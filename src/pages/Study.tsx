@@ -586,10 +586,10 @@ const Study = () => {
   // Helper function to get status color
   const getStatusColor = (status: Branch["status"]) => {
     switch (status) {
-      case "active": return "bg-blue-100 text-blue-800";
-      case "completed": return "bg-purple-100 text-purple-800";
-      case "paused": return "bg-yellow-100 text-yellow-800";
-      default: return "bg-gray-100 text-gray-800";
+      case "active": return "bg-blue-100 text-blue-800 dark:bg-blue-950/50 dark:text-blue-400";
+      case "completed": return "bg-purple-100 text-purple-800 dark:bg-purple-950/50 dark:text-purple-400";
+      case "paused": return "bg-yellow-100 text-yellow-800 dark:bg-yellow-950/50 dark:text-yellow-400";
+      default: return "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-400";
     }
   };
 
@@ -744,14 +744,14 @@ const Study = () => {
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-study/20 to-study/10 border border-study/200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-study/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-teal-50 to-emerald-50 dark:from-teal-950/30 dark:to-emerald-950/30 border border-teal-200/50 dark:border-teal-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-teal-400/20 to-transparent dark:from-teal-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 rounded-xl bg-study/10">
-                <BookOpen className="h-5 w-5 text-study" />
+              <div className="p-2 rounded-xl bg-teal-500/10">
+                <BookOpen className="h-5 w-5 text-teal-600 dark:text-teal-400" />
               </div>
-              <div className="text-xs font-medium text-study bg-study/10 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-teal-600 dark:text-teal-400 bg-teal-100 dark:bg-teal-950/50 px-2 py-1 rounded-full">
                 Total
               </div>
             </div>
@@ -761,23 +761,23 @@ const Study = () => {
               </p>
               <p className="text-sm text-muted-foreground">Branches</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-study">
+            <div className="mt-4 flex items-center gap-2 text-xs text-teal-600 dark:text-teal-400">
               <Zap className="h-3 w-3" />
               <span>All Study Areas</span>
             </div>
           </div>
         </div>
         
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/50 dark:border-blue-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent dark:from-blue-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-xl bg-blue-500/10">
-                <div className="h-5 w-5 text-blue-600">
+                <div className="h-5 w-5 text-blue-600 dark:text-blue-400">
                   {getStatusIcon('active')}
                 </div>
               </div>
-              <div className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 px-2 py-1 rounded-full">
                 Active
               </div>
             </div>
@@ -787,21 +787,21 @@ const Study = () => {
               </p>
               <p className="text-sm text-muted-foreground">In Progress</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-blue-600">
+            <div className="mt-4 flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
               <Flame className="h-3 w-3" />
               <span>Currently Studying</span>
             </div>
           </div>
         </div>
         
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 border border-purple-200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-purple-400/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 border border-purple-200/50 dark:border-purple-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-purple-400/20 to-transparent dark:from-purple-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-xl bg-purple-500/10">
-                <CheckCircle className="h-5 w-5 text-purple-600" />
+                <CheckCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <div className="text-xs font-medium text-purple-600 bg-purple-100 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950/50 px-2 py-1 rounded-full">
                 Completed
               </div>
             </div>
@@ -811,21 +811,21 @@ const Study = () => {
               </p>
               <p className="text-sm text-muted-foreground">Finished</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-purple-600">
+            <div className="mt-4 flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
               <CheckCircle className="h-3 w-3" />
               <span>Success Rate</span>
             </div>
           </div>
         </div>
         
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-950/30 dark:to-yellow-950/30 border border-amber-200/50 dark:border-amber-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-amber-400/20 to-transparent dark:from-amber-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Target className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-xl bg-amber-500/10">
+                <Target className="h-5 w-5 text-amber-600 dark:text-amber-400" />
               </div>
-              <div className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/50 px-2 py-1 rounded-full">
                 Subjects
               </div>
             </div>
@@ -835,7 +835,7 @@ const Study = () => {
               </p>
               <p className="text-sm text-muted-foreground">Total Topics</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-primary">
+            <div className="mt-4 flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400">
               <BookOpen className="h-3 w-3" />
               <span>All Topics</span>
             </div>
@@ -936,7 +936,7 @@ const Study = () => {
                     <div className="text-sm text-muted-foreground">Total Materials</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-green-600 mb-2">
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
                       {overviewStats.completedBranches}
                     </div>
                     <div className="text-sm text-muted-foreground">Completed Branches</div>

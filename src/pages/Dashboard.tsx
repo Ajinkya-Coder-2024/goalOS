@@ -36,7 +36,7 @@ const Dashboard = () => {
       description: "Track your financial progress with detailed income and expense monitoring",
       icon: DollarSign,
       href: "/finances",
-      color: "earnings",
+      color: "earnings" as const,
       stats: { label: "Total Balance", value: `$${dashboardData.moduleStats.earnings.totalBalance}` }
     },
     {
@@ -44,7 +44,7 @@ const Dashboard = () => {
       description: "Create and manage personal development challenges with progress tracking",
       icon: Target,
       href: "/challenges",
-      color: "challenge",
+      color: "challenge" as const,
       stats: { label: "Active Challenges", value: dashboardData.moduleStats.challenges.active.toString() }
     },
     {
@@ -52,7 +52,7 @@ const Dashboard = () => {
       description: "Visualize your life goals on an interactive timeline",
       icon: Calendar,
       href: "/life-plan",
-      color: "life-plan",
+      color: "life-plan" as const,
       stats: { label: "Goals Set", value: dashboardData.moduleStats.lifePlan.goalsSet.toString() }
     },
     {
@@ -60,10 +60,38 @@ const Dashboard = () => {
       description: "Organize your learning resources and educational content",
       icon: BookOpen,
       href: "/study",
-      color: "study",
+      color: "study" as const,
       stats: { label: "Resources", value: dashboardData.moduleStats.study.resources.toString() }
     }
   ];
+
+  const cardBg: Record<string, string> = {
+    "earnings": "from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border-green-200/50 dark:border-green-800/30",
+    "challenge": "from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border-purple-200/50 dark:border-purple-800/30",
+    "life-plan": "from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border-orange-200/50 dark:border-orange-800/30",
+    "study": "from-teal-50 to-emerald-50 dark:from-teal-950/30 dark:to-emerald-950/30 border-teal-200/50 dark:border-teal-800/30",
+  };
+
+  const iconBg: Record<string, string> = {
+    "earnings": "bg-green-500/10",
+    "challenge": "bg-purple-500/10",
+    "life-plan": "bg-orange-500/10",
+    "study": "bg-teal-500/10",
+  };
+
+  const iconColor: Record<string, string> = {
+    "earnings": "text-green-600 dark:text-green-400",
+    "challenge": "text-purple-600 dark:text-purple-400",
+    "life-plan": "text-orange-600 dark:text-orange-400",
+    "study": "text-teal-600 dark:text-teal-400",
+  };
+
+  const glowBg: Record<string, string> = {
+    "earnings": "from-green-400/20 dark:from-green-400/10",
+    "challenge": "from-purple-400/20 dark:from-purple-400/10",
+    "life-plan": "from-orange-400/20 dark:from-orange-400/10",
+    "study": "from-teal-400/20 dark:from-teal-400/10",
+  };
 
   if (loading) {
     return (
@@ -95,7 +123,7 @@ const Dashboard = () => {
           className="h-80 bg-cover bg-center bg-no-repeat"
           style={{ backgroundImage: `url(${heroImage})` }}
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-primary/90 to-accent/90" />
+          <div className="absolute inset-0 bg-gradient-to-r from-blue-600/90 to-emerald-600/90 dark:from-blue-950/95 dark:to-emerald-950/95" />
           <div className="relative h-full flex items-center justify-center text-center p-8">
             <div className="space-y-6">
               <div>
@@ -136,39 +164,59 @@ const Dashboard = () => {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Monthly Progress</p>
-                <p className="text-3xl font-bold text-primary">{dashboardData.quickStats.monthlyProgress}%</p>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/50 dark:border-blue-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent dark:from-blue-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 rounded-xl bg-blue-500/10">
+                <TrendingUp className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <TrendingUp className="h-8 w-8 text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Completed Tasks</p>
-                <p className="text-3xl font-bold text-accent">{dashboardData.quickStats.completedTasks}</p>
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 px-2 py-1 rounded-full">
+                Progress
               </div>
-              <CheckCircle className="h-8 w-8 text-accent" />
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Active Goals</p>
-                <p className="text-3xl font-bold text-challenge">{dashboardData.quickStats.activeGoals}</p>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-foreground">{dashboardData.quickStats.monthlyProgress}%</p>
+              <p className="text-sm text-muted-foreground">Monthly Progress</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200/50 dark:border-green-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-green-400/20 to-transparent dark:from-green-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 rounded-xl bg-green-500/10">
+                <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
-              <Users className="h-8 w-8 text-challenge" />
+              <div className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-950/50 px-2 py-1 rounded-full">
+                Done
+              </div>
             </div>
-          </CardContent>
-        </Card>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-foreground">{dashboardData.quickStats.completedTasks}</p>
+              <p className="text-sm text-muted-foreground">Completed Tasks</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border border-purple-200/50 dark:border-purple-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-purple-400/20 to-transparent dark:from-purple-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+          <div className="relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 rounded-xl bg-purple-500/10">
+                <Users className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950/50 px-2 py-1 rounded-full">
+                Active
+              </div>
+            </div>
+            <div className="space-y-1">
+              <p className="text-3xl font-bold text-foreground">{dashboardData.quickStats.activeGoals}</p>
+              <p className="text-sm text-muted-foreground">Active Goals</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Module Cards */}
@@ -178,11 +226,12 @@ const Dashboard = () => {
           {modules.map((module) => {
             const IconComponent = module.icon;
             return (
-              <Card key={module.title} className="group hover:shadow-xl transition-all duration-300 cursor-pointer border-0 bg-gradient-to-br from-card to-card/80 flex flex-col">
-                <CardHeader className="pb-4 flex-1">
+              <div key={module.title} className={`group relative overflow-hidden rounded-2xl bg-gradient-to-br ${cardBg[module.color]} hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col`}>
+                <div className={`absolute top-0 right-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-gradient-to-br ${glowBg[module.color]} to-transparent blur-2xl group-hover:scale-110 transition-transform duration-500`}></div>
+                <CardHeader className="pb-4 flex-1 relative z-10">
                   <div className="flex items-center mb-4">
-                    <div className={`w-14 h-14 rounded-xl bg-gradient-to-br from-${module.color}/20 to-${module.color}/10 flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm`}>
-                      <IconComponent className={`h-7 w-7 text-${module.color}`} />
+                    <div className={`w-14 h-14 rounded-xl ${iconBg[module.color]} flex items-center justify-center group-hover:scale-105 transition-transform duration-300 shadow-sm`}>
+                      <IconComponent className={`h-7 w-7 ${iconColor[module.color]}`} />
                     </div>
                   </div>
                   <CardTitle className="text-lg font-semibold text-foreground group-hover:text-primary transition-colors duration-300">
@@ -192,7 +241,7 @@ const Dashboard = () => {
                     {module.description}
                   </CardDescription>
                 </CardHeader>
-                <CardContent className="pt-0 mt-auto">
+                <CardContent className="pt-0 mt-auto relative z-10">
                   <NavLink 
                     to={module.href} 
                     className="inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium ring-offset-background transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-gradient-to-r from-primary to-primary/90 text-primary-foreground hover:from-primary/90 hover:to-primary/80 hover:shadow-lg hover:shadow-primary/25 h-11 px-6 w-full group-hover:scale-[1.02] transform"
@@ -200,7 +249,7 @@ const Dashboard = () => {
                     Open Module
                   </NavLink>
                 </CardContent>
-              </Card>
+              </div>
             );
           })}
         </div>

@@ -3,9 +3,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Plus, Calendar, Target, Loader2, Check, Trophy, Flame, Zap, X, Clock, Download, Trash2 } from "lucide-react";
+import { Plus, Calendar, Target, Loader2, Check, Trophy, Flame, Zap, X, Clock, Download, Trash2, ChevronDown } from "lucide-react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { format } from "date-fns";
 import { toast } from "sonner";
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
@@ -38,26 +39,22 @@ interface FormData {
   goal: string;
   startAge: string;
   endAge: string;
-  startYear: string;
-  endYear: string;
+  startDate: string;
+  endDate: string;
   detailItems: string[];
 }
 
-const planAnchorYear = (p: LifePlan) => p.startYear ?? p.targetYear;
-const planEndYear = (p: LifePlan) => p.endYear ?? p.targetYear;
+const planAnchorYear = (p: LifePlan) => p.startDate ? new Date(p.startDate).getFullYear() : p.targetYear;
+const planEndYear = (p: LifePlan) => p.endDate ? new Date(p.endDate).getFullYear() : p.targetYear;
 
-const displayGoal = (p: LifePlan) => (p.goal?.trim() ? p.goal.trim() : getPlanTitleStatic(p.description));
-
-function getPlanTitleStatic(description: string): string {
+function extractGoalFromDescription(description: string): string {
   if (!description) return "Untitled Plan";
-  const cleaned = description.replace(/^\d+\.\s*/, "").trim();
-  if (cleaned.length > 0) {
-    const firstSentence = cleaned.split(/[.!?]/)[0].trim();
-    if (firstSentence.length > 0 && firstSentence.length <= 60) return firstSentence;
-    return cleaned.substring(0, 60) + (cleaned.length > 60 ? "..." : "");
-  }
-  return description.substring(0, 60) + (description.length > 60 ? "..." : "");
+  const goalPart = description.split(/\n\n/)[0]?.trim() || description.trim();
+  if (goalPart.length > 60) return goalPart.substring(0, 60) + "...";
+  return goalPart || "Untitled Plan";
 }
+
+const displayGoal = (p: LifePlan) => (p.goal?.trim() ? p.goal.trim() : extractGoalFromDescription(p.description));
 
 function displayDetailItems(plan: LifePlan): string[] {
   const fromApi = plan.detailItems?.map((s) => s.trim()).filter(Boolean);
@@ -77,24 +74,20 @@ function displayDetailItems(plan: LifePlan): string[] {
 }
 
 function planToForm(plan: LifePlan): FormData {
-  const sy = plan.startYear ?? plan.targetYear;
-  const ey = plan.endYear ?? plan.targetYear;
+  const sy = plan.startDate ? new Date(plan.startDate).getFullYear() : plan.targetYear;
+  const ey = plan.endDate ? new Date(plan.endDate).getFullYear() : plan.targetYear;
   let detailItems = plan.detailItems?.map((s) => s.trim()).filter(Boolean) ?? [];
   if (!detailItems.length && plan.description?.trim()) {
     detailItems = displayDetailItems(plan);
   }
   if (!detailItems.length) detailItems = [""];
-  const goalHead =
-    plan.goal?.trim() ||
-    (plan.description?.includes("\n\n")
-      ? plan.description.split(/\n\n/)[0].trim()
-      : getPlanTitleStatic(plan.description || ""));
+  const goalHead = plan.goal?.trim() || extractGoalFromDescription(plan.description || "");
   return {
     goal: goalHead,
     startAge: String(plan.startAge),
     endAge: String(plan.endAge),
-    startYear: String(sy),
-    endYear: String(ey),
+    startDate: plan.startDate || `${sy}-01-01`,
+    endDate: plan.endDate || `${ey}-12-31`,
     detailItems,
   };
 }
@@ -102,7 +95,7 @@ function planToForm(plan: LifePlan): FormData {
 function planCoversYear(plan: LifePlan, y: number): boolean {
   const start = planAnchorYear(plan);
   const end = planEndYear(plan);
-  if (plan.startYear != null && plan.endYear != null) return y >= start && y <= end;
+  if (plan.startDate && plan.endDate) return y >= start && y <= end;
   return plan.targetYear === y;
 }
 
@@ -124,8 +117,8 @@ const LifePlan = () => {
     goal: "",
     startAge: "",
     endAge: "",
-    startYear: String(new Date().getFullYear()),
-    endYear: String(new Date().getFullYear()),
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0],
     detailItems: [""],
   });
   const [showAddPlan, setShowAddPlan] = useState(false);
@@ -154,12 +147,24 @@ const LifePlan = () => {
     loadPlans();
   }, []);
 
+  const CURRENT_AGE = 26;
+  const CURRENT_YEAR = 2026;
+  const FIXED_MONTH_DAY = "09-23";
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const updated = { ...prev, [name]: value };
+      if ((name === "startAge" || name === "endAge") && value) {
+        const age = parseInt(value, 10);
+        if (!isNaN(age)) {
+          const targetYear = CURRENT_YEAR + (age - CURRENT_AGE);
+          const dateField = name === "startAge" ? "startDate" : "endDate";
+          updated[dateField] = `${targetYear}-${FIXED_MONTH_DAY}`;
+        }
+      }
+      return updated;
+    });
   };
 
   const updateDetailItem = (index: number, value: string) => {
@@ -183,13 +188,6 @@ const LifePlan = () => {
     }));
   };
 
-  const parsedStartYear = parseInt(formData.startYear, 10);
-  const parsedEndYear = parseInt(formData.endYear, 10);
-  const durationYearsDisplay =
-    !Number.isNaN(parsedStartYear) && !Number.isNaN(parsedEndYear) && parsedEndYear >= parsedStartYear
-      ? parsedEndYear - parsedStartYear + 1
-      : "—";
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -198,7 +196,7 @@ const LifePlan = () => {
       return;
     }
 
-    if (!formData.startAge || !formData.endAge || !formData.startYear || !formData.endYear) {
+    if (!formData.startAge || !formData.endAge || !formData.startDate || !formData.endDate) {
       toast.error("Please fill in all required fields");
       return;
     }
@@ -208,14 +206,14 @@ const LifePlan = () => {
       return;
     }
 
-    const startYear = parseInt(formData.startYear, 10);
-    const endYear = parseInt(formData.endYear, 10);
-    if (Number.isNaN(startYear) || Number.isNaN(endYear)) {
-      toast.error("Enter valid start and end years");
+    const startDate = formData.startDate ? new Date(formData.startDate) : null;
+    const endDate = formData.endDate ? new Date(formData.endDate) : null;
+    if (!startDate || !endDate || isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      toast.error("Enter valid start and end dates");
       return;
     }
-    if (endYear < startYear) {
-      toast.error("End year must be greater than or equal to start year");
+    if (endDate < startDate) {
+      toast.error("End date must be greater than or equal to start date");
       return;
     }
 
@@ -232,10 +230,11 @@ const LifePlan = () => {
         goal: formData.goal.trim(),
         startAge: parseInt(formData.startAge, 10),
         endAge: parseInt(formData.endAge, 10),
-        startYear,
-        endYear,
+        startDate: formData.startDate,
+        endDate: formData.endDate,
         detailItems,
       };
+      console.debug('[LifePlan] Sending planData to API:', JSON.stringify(planData, null, 2));
 
       if (editingPlan) {
         const updatedPlan = await updateExistingPlan(editingPlan._id, planData);
@@ -263,9 +262,12 @@ const LifePlan = () => {
 
       setShowAddPlan(false);
       resetForm();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving plan:", error);
-      toast.error("Failed to save plan. Please try again.");
+      console.debug('[LifePlan] Error response:', error.response?.data);
+      console.debug('[LifePlan] Error status:', error.response?.status);
+      console.debug('[LifePlan] Error message:', error.message);
+      toast.error(error.response?.data?.message || "Failed to save plan. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -321,13 +323,13 @@ const LifePlan = () => {
   };
 
   const resetForm = () => {
-    const y = new Date().getFullYear();
+    const today = new Date().toISOString().split('T')[0];
     setFormData({
       goal: "",
       startAge: "",
       endAge: "",
-      startYear: String(y),
-      endYear: String(y),
+      startDate: today,
+      endDate: today,
       detailItems: [""],
     });
     setEditingPlan(null);
@@ -553,11 +555,13 @@ const LifePlan = () => {
       for (let planIndex = 0; planIndex < sortedPlans.length; planIndex++) {
         const plan = sortedPlans[planIndex];
         const safeGoal = escapeHtmlPdf(displayGoal(plan));
-        const sy = planAnchorYear(plan);
-        const ey = planEndYear(plan);
+        const sy = plan.startDate ? format(new Date(plan.startDate), "yyyy") : planAnchorYear(plan);
+        const ey = plan.endDate ? format(new Date(plan.endDate), "yyyy") : planEndYear(plan);
+        const startDateStr = plan.startDate ? format(new Date(plan.startDate), "PPP") : "";
+        const endDateStr = plan.endDate ? format(new Date(plan.endDate), "PPP") : "";
         const durYears =
-          plan.startYear != null && plan.endYear != null && ey >= sy
-            ? ey - sy + 1
+          plan.startDate && plan.endDate
+            ? new Date(plan.endDate).getFullYear() - new Date(plan.startDate).getFullYear() + 1
             : "—";
         const detailLines = displayDetailItems(plan);
         const detailsList =
@@ -598,12 +602,12 @@ const LifePlan = () => {
                     <div style="font-size: 22px; font-weight: 700;">${durYears}${typeof durYears === "number" ? " years" : ""}</div>
                   </div>
                   <div>
-                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Start year</div>
-                    <div style="font-size: 22px; font-weight: 700;">${sy}</div>
+                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">Start date</div>
+                    <div style="font-size: 18px; font-weight: 700;">${startDateStr || sy}</div>
                   </div>
                   <div>
-                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">End year</div>
-                    <div style="font-size: 22px; font-weight: 700;">${ey}</div>
+                    <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">End date</div>
+                    <div style="font-size: 18px; font-weight: 700;">${endDateStr || ey}</div>
                   </div>
                 </div>
               </div>
@@ -662,7 +666,7 @@ const LifePlan = () => {
         let finalHeight = imgHeight;
         let finalWidth = imgWidth;
         let xOffset = 0;
-        let yOffset = 10;
+        const yOffset = 10;
         
         // If content is taller than available space, scale it down
         if (imgHeight > availableHeight) {
@@ -755,14 +759,14 @@ const LifePlan = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-life-plan/20 to-life-plan/10 border border-life-plan/200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-life-plan/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-950/30 dark:to-amber-950/30 border border-orange-200/50 dark:border-orange-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-orange-400/20 to-transparent dark:from-orange-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 rounded-xl bg-life-plan/10">
-                <Target className="h-5 w-5 text-life-plan" />
+              <div className="p-2 rounded-xl bg-orange-500/10">
+                <Target className="h-5 w-5 text-orange-600 dark:text-orange-400" />
               </div>
-              <div className="text-xs font-medium text-life-plan bg-life-plan/10 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-orange-600 dark:text-orange-400 bg-orange-100 dark:bg-orange-950/50 px-2 py-1 rounded-full">
                 Total Goals
               </div>
             </div>
@@ -772,21 +776,21 @@ const LifePlan = () => {
               </p>
               <p className="text-sm text-muted-foreground">Life Plans</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-life-plan">
+            <div className="mt-4 flex items-center gap-2 text-xs text-orange-600 dark:text-orange-400">
               <Zap className="h-3 w-3" />
               <span>All Time</span>
             </div>
           </div>
         </div>
         
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 border border-emerald-200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-emerald-400/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-950/30 dark:to-green-950/30 border border-emerald-200/50 dark:border-emerald-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-emerald-400/20 to-transparent dark:from-emerald-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-xl bg-emerald-500/10">
-                <Calendar className="h-5 w-5 text-emerald-600" />
+                <Calendar className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               </div>
-              <div className="text-xs font-medium text-emerald-600 bg-emerald-100 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-950/50 px-2 py-1 rounded-full">
                 Upcoming
               </div>
             </div>
@@ -796,21 +800,21 @@ const LifePlan = () => {
               </p>
               <p className="text-sm text-muted-foreground">Future Plans</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600">
+            <div className="mt-4 flex items-center gap-2 text-xs text-emerald-600 dark:text-emerald-400">
               <Flame className="h-3 w-3" />
               <span>In Progress</span>
             </div>
           </div>
         </div>
         
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/50 dark:border-blue-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent dark:from-blue-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Target className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-xl bg-blue-500/10">
+                <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 px-2 py-1 rounded-full">
                 Current
               </div>
             </div>
@@ -820,7 +824,7 @@ const LifePlan = () => {
               </p>
               <p className="text-sm text-muted-foreground">This Year</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-primary">
+            <div className="mt-4 flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
               <Calendar className="h-3 w-3" />
               <span>Active Now</span>
             </div>
@@ -838,7 +842,7 @@ const LifePlan = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <DialogHeader>
             <DialogTitle>{editingPlan ? "Edit" : "Create"} Life Plan</DialogTitle>
             <DialogDescription>
@@ -896,46 +900,29 @@ const LifePlan = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="startYear">Start year *</Label>
+                <Label htmlFor="startDate">Start date *</Label>
                 <Input
-                  id="startYear"
-                  name="startYear"
-                  type="number"
-                  min={1990}
-                  max={2100}
-                  value={formData.startYear}
-                  onChange={handleInputChange}
+                  id="startDate"
+                  name="startDate"
+                  type="text"
+                  value={formData.startDate || ""}
+                  placeholder="YYYY-MM-DD"
                   required
+                  onChange={handleInputChange}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="endYear">End year *</Label>
+                <Label htmlFor="endDate">End date *</Label>
                 <Input
-                  id="endYear"
-                  name="endYear"
-                  type="number"
-                  min={1990}
-                  max={2100}
-                  value={formData.endYear}
-                  onChange={handleInputChange}
+                  id="endDate"
+                  name="endDate"
+                  type="text"
+                  value={formData.endDate || ""}
+                  placeholder="YYYY-MM-DD"
                   required
+                  onChange={handleInputChange}
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="duration">Duration</Label>
-              <Input
-                id="duration"
-                readOnly
-                tabIndex={-1}
-                className="bg-muted/50 cursor-default"
-                value={
-                  typeof durationYearsDisplay === "number"
-                    ? `${durationYearsDisplay} year${durationYearsDisplay === 1 ? "" : "s"} (inclusive)`
-                    : durationYearsDisplay
-                }
-              />
-              <p className="text-xs text-muted-foreground">Computed from start and end year.</p>
             </div>
             <div className="space-y-2">
               <Label>Details *</Label>
@@ -998,7 +985,7 @@ const LifePlan = () => {
 
       {/* Plan Details Dialog */}
       <Dialog open={showDetailsDialog} onOpenChange={setShowDetailsDialog}>
-        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           <DialogHeader>
             <DialogTitle className="text-2xl font-bold">
               {selectedPlanForDetails ? displayGoal(selectedPlanForDetails) : "Plan Details"}
@@ -1009,13 +996,13 @@ const LifePlan = () => {
           </DialogHeader>
           
           {selectedPlanForDetails && (
-            <div className="space-y-6 py-4">
+            <div className="space-y-4 py-4">
               {/* Status Badge */}
               <div className="flex items-center gap-2">
                 <div className={`px-3 py-1 rounded-full text-sm font-medium ${
                   selectedPlanForDetails.completed
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-life-plan/10 text-life-plan'
+                    ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
+                    : 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400'
                 }`}>
                   {selectedPlanForDetails.completed ? 'Completed' : 'Active'}
                 </div>
@@ -1026,114 +1013,75 @@ const LifePlan = () => {
                 )}
               </div>
 
-              {/* Key Information Grid */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="h-4 w-4 text-life-plan" />
-                    <span>Age Range</span>
+              {/* Card 1: All Key Information */}
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="grid grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4 text-life-plan" />
+                          <span>Age Range</span>
+                        </div>
+                        <p className="text-lg font-semibold mt-1">
+                          {selectedPlanForDetails.startAge} - {selectedPlanForDetails.endAge} years
+                        </p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Target className="h-4 w-4 text-life-plan" />
+                          <span>Year Range</span>
+                        </div>
+                        <p className="text-lg font-semibold mt-1">
+                          {planAnchorYear(selectedPlanForDetails)} – {planEndYear(selectedPlanForDetails)}
+                        </p>
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4 text-life-plan" />
+                          <span>Start Date</span>
+                        </div>
+                        <p className="text-lg font-semibold mt-1">
+                          {selectedPlanForDetails.startDate 
+                            ? format(new Date(selectedPlanForDetails.startDate), "PPP")
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                          <Calendar className="h-4 w-4 text-life-plan" />
+                          <span>End Date</span>
+                        </div>
+                        <p className="text-lg font-semibold mt-1">
+                          {selectedPlanForDetails.endDate 
+                            ? format(new Date(selectedPlanForDetails.endDate), "PPP")
+                            : "—"}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  <p className="text-lg font-semibold">
-                    {selectedPlanForDetails.startAge} - {selectedPlanForDetails.endAge} years
-                  </p>
-                </div>
+                </CardContent>
+              </Card>
 
-                <div className="space-y-2 p-4 bg-muted/30 rounded-lg">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Target className="h-4 w-4 text-life-plan" />
-                    <span>Years</span>
-                  </div>
-                  <p className="text-lg font-semibold">
-                    {planAnchorYear(selectedPlanForDetails)} – {planEndYear(selectedPlanForDetails)}
-                  </p>
-                </div>
-
-                <div className="space-y-2 p-4 bg-muted/30 rounded-lg col-span-2">
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock className="h-4 w-4 text-life-plan" />
-                    <span>Duration (year span)</span>
-                  </div>
-                  <p className="text-lg font-semibold">
-                    {selectedPlanForDetails.startYear != null &&
-                    selectedPlanForDetails.endYear != null &&
-                    selectedPlanForDetails.endYear >= selectedPlanForDetails.startYear
-                      ? `${selectedPlanForDetails.endYear - selectedPlanForDetails.startYear + 1} years (inclusive)`
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Target className="h-5 w-5 text-life-plan" />
-                  Details
-                </h3>
-                <ul className="text-sm text-muted-foreground leading-relaxed bg-muted/50 p-4 rounded-lg list-disc pl-5 space-y-2">
-                  {displayDetailItems(selectedPlanForDetails).map((line, i) => (
-                    <li key={i}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Timeline Information */}
-              <div className="space-y-2 p-4 bg-gradient-to-br from-life-plan/5 to-life-plan/10 rounded-lg border border-life-plan/20">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-life-plan" />
-                  Timeline
-                </h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Start Age:</span>
-                    <span className="font-medium">{selectedPlanForDetails.startAge} years</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">End Age:</span>
-                    <span className="font-medium">{selectedPlanForDetails.endAge} years</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Duration:</span>
-                    <span className="font-medium">{selectedPlanForDetails.endAge - selectedPlanForDetails.startAge} years</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Start year:</span>
-                    <span className="font-medium">{planAnchorYear(selectedPlanForDetails)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">End year:</span>
-                    <span className="font-medium">{planEndYear(selectedPlanForDetails)}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Metadata */}
-              <div className="space-y-2 pt-4 border-t">
-                <h3 className="text-sm font-semibold text-muted-foreground">Additional Information</h3>
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Created:</span>
-                    <p className="font-medium">
-                      {new Date(selectedPlanForDetails.createdAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">Last Updated:</span>
-                    <p className="font-medium">
-                      {new Date(selectedPlanForDetails.updatedAt).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                      })}
-                    </p>
-                  </div>
-                </div>
-              </div>
+              {/* Card 2: Details */}
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                    <Target className="h-5 w-5 text-life-plan" />
+                    Details
+                  </h3>
+                  <ul className="text-sm text-muted-foreground leading-relaxed list-disc pl-5 space-y-2">
+                    {displayDetailItems(selectedPlanForDetails).map((line, i) => (
+                      <li key={i}>{line}</li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
 
               {/* Action Buttons */}
-              <div className="flex gap-2 pt-4 border-t">
+              <div className="flex gap-2 pt-2 border-t">
                 <Button
                   variant="outline"
                   onClick={() => {
@@ -1295,8 +1243,8 @@ const LifePlan = () => {
                                   <>
                                     <span className="text-muted-foreground/50">•</span>
                                     <div className="flex items-center gap-1.5">
-                                      <Check className="h-4 w-4 text-emerald-600" />
-                                      <span className="text-emerald-600 font-medium">
+                                      <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                      <span className="text-emerald-600 dark:text-emerald-400 font-medium">
                                         Completed
                                       </span>
                                     </div>

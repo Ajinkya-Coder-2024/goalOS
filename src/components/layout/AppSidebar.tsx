@@ -100,7 +100,7 @@ export function AppSidebar() {
   const getNavClassName = (path: string, isSubItem = false) => {
     const active = isActive(path);
     const baseClass = active 
-      ? "bg-primary/10 text-primary font-medium border-r-2 border-primary" 
+      ? "bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 font-medium border-r-2 border-blue-500 dark:border-blue-400" 
       : "hover:bg-muted/50 text-muted-foreground hover:text-foreground";
     
     return cn(
@@ -115,10 +115,10 @@ export function AppSidebar() {
       <SidebarContent className="bg-card border-r">
         <div className="p-6">
           <div className={`text-center ${collapsed ? 'hidden' : 'block'}`}>
-            <div className="w-12 h-12 bg-gradient-to-br from-primary to-accent rounded-xl mx-auto mb-3 flex items-center justify-center">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 dark:from-blue-400 dark:to-blue-500 rounded-xl mx-auto mb-3 flex items-center justify-center shadow-lg shadow-blue-500/20 dark:shadow-blue-400/10">
               <Target className="h-6 w-6 text-white" />
             </div>
-            <h2 className="font-bold text-lg">GoalOS</h2>
+            <h2 className="font-bold text-lg dark:text-white">GoalOS</h2>
             <p className="text-sm text-muted-foreground">Personal Development</p>
           </div>
         </div>

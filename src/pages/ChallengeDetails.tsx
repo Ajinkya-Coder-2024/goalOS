@@ -14,6 +14,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent } from "@/components/ui/card";
 import { ArrowLeft, Plus, X, Pencil, Trash2, Check, X as XIcon, Edit2, Trash, List, CheckCircle, ChevronDown, ChevronRight, Trophy, Target, Calendar, Clock, Flame, Zap, ArrowRight, Loader2, ChevronLeft } from 'lucide-react';
 import { toast } from "sonner";
 import html2canvas from 'html2canvas';
@@ -211,6 +212,8 @@ const ChallengeDetails = () => {
   const [showAddSubject, setShowAddSubject] = useState<{sectionId: string | null, isEditing: boolean}>({sectionId: null, isEditing: false});
   const [expandedDescriptions, setExpandedDescriptions] = useState<Record<string, boolean>>({});
   const [viewAllDialogOpen, setViewAllDialogOpen] = useState<boolean>(false);
+  const [showTodayTasks, setShowTodayTasks] = useState(false);
+  const [selectedSubjectForDetails, setSelectedSubjectForDetails] = useState<{ subject: any; sectionName: string } | null>(null);
   // State to track selected subjects by section: { [sectionId]: { [subjectId]: boolean } }
   // Removed selectedSubjects state as we're not using checkboxes anymore
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
@@ -866,7 +869,7 @@ const ChallengeDetails = () => {
                     return {
                       ...subject,
                       name: subjectData.name,
-                      description: subjectData.description,
+                      description: buildDescriptionFromDetailItems(subjectData.detailItems || []),
                       startDate: subjectData.startDate,
                       endDate: subjectData.endDate,
                       fieldType: subjectData.fieldType
@@ -1032,8 +1035,8 @@ const ChallengeDetails = () => {
         >
           <ArrowLeft className="mr-2 h-4 w-4" /> Back to Challenges
         </Button>
-        <div className="bg-white rounded-lg shadow-sm p-6 border">
-          <h1 className="text-2xl font-bold text-red-600">Challenge not found</h1>
+        <div className="bg-card rounded-lg shadow-sm p-6 border">
+          <h1 className="text-2xl font-bold text-red-600 dark:text-red-400">Challenge not found</h1>
           <p className="mt-2">The requested challenge could not be found.</p>
         </div>
       </div>
@@ -1058,7 +1061,7 @@ const ChallengeDetails = () => {
         className="space-y-4"
       >
         {newSubject.subjects.map((subject, index) => (
-          <div key={index} className="space-y-3 p-3 bg-white/5 rounded-lg relative">
+          <div key={index} className="space-y-3 p-3 bg-muted/20 rounded-lg relative">
             {index > 0 && (
               <button
                 type="button"
@@ -1535,7 +1538,7 @@ const ChallengeDetails = () => {
                 </div>
                 
                 {expandedSections[section.id] !== false && section.subjects?.map((subject) => (
-                  <div className="flex items-center p-2 hover:bg-gray-50 rounded-md w-full">
+                  <div className="flex items-center p-2 hover:bg-muted/50 rounded-md w-full">
                     <div className="flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium">
@@ -1543,14 +1546,14 @@ const ChallengeDetails = () => {
                         </span>
                         <span className="text-xs text-muted-foreground">
                           {subject.status === 'completed' ? (
-                            <span className="inline-flex items-center text-green-600">
+                            <span className="inline-flex items-center text-green-600 dark:text-green-400 dark:text-green-400">
                               <CheckCircle className="h-3.5 w-3.5 mr-1" />
                               Completed
                             </span>
                           ) : subject.status === 'in_progress' ? (
-                            <span className="text-blue-600">In Progress</span>
+                            <span className="text-blue-600 dark:text-blue-400">In Progress</span>
                           ) : (
-                            <span className="text-gray-500">Not Started</span>
+                            <span className="text-muted-foreground">Not Started</span>
                           )}
                         </span>
                       </div>
@@ -1582,9 +1585,270 @@ const ChallengeDetails = () => {
     );
   };
 
+  const openSubjectDetails = (e: React.MouseEvent, subject: any, sectionName: string) => {
+    e.stopPropagation();
+    setSelectedSubjectForDetails({ subject, sectionName });
+  };
+
+  const TodayTasksDialog = () => {
+    if (!challenge) return null;
+
+    const today = new Date();
+    const todayStr = today.toISOString().split('T')[0];
+    const dayName = today.toLocaleDateString('en-US', { weekday: 'long' }).toUpperCase();
+
+    const todayTasks: { sectionName: string; subject: any }[] = [];
+    challenge?.sections?.forEach((section) => {
+      section.subjects?.forEach((subject) => {
+        const start = subject.startDate ? new Date(subject.startDate).toISOString().split('T')[0] : null;
+        const end = subject.endDate ? new Date(subject.endDate).toISOString().split('T')[0] : null;
+        if (start && end && todayStr >= start && todayStr <= end) {
+          todayTasks.push({ sectionName: section.name, subject });
+        }
+      });
+    });
+
+    return (
+      <Dialog open={showTodayTasks} onOpenChange={setShowTodayTasks}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Calendar className="h-5 w-5" />
+              Today's Tasks — {dayName}
+            </DialogTitle>
+            <DialogDescription>
+              {today.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })} — {todayTasks.length} task{todayTasks.length !== 1 ? 's' : ''} scheduled
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-6 mt-4">
+            {todayTasks.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Calendar className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                <p className="text-lg font-medium">No tasks for today</p>
+                <p className="text-sm">Nothing is scheduled for today.</p>
+              </div>
+            ) : (
+              todayTasks.map(({ sectionName, subject }, idx) => (
+                <div key={subject.id || subject._id || idx} className="border rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded">
+                      {sectionName}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {subject.status === 'completed' ? (
+                        <span className="inline-flex items-center text-green-600">
+                          <CheckCircle className="h-3.5 w-3.5 mr-1" /> Completed
+                        </span>
+                      ) : subject.status === 'in_progress' ? (
+                        <span className="text-blue-600">In Progress</span>
+                      ) : (
+                        <span>Not Started</span>
+                      )}
+                    </span>
+                  </div>
+                  <h4 className="font-semibold mb-2">{subject.name}</h4>
+                  {subject.description && (
+                    <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
+                      {getDetailItemsForDisplay(subject.description).map((line, i) => (
+                        <li key={`today-${subject.id || idx}-line-${i}`}>{line}</li>
+                      ))}
+                    </ul>
+                  )}
+                  <div className="flex items-center mt-2 text-xs text-muted-foreground">
+                    {subject.startDate && (
+                      <span className="mr-4">
+                        Start: {formatDate(subject.startDate, 'DD/MM/YYYY')}
+                      </span>
+                    )}
+                    {subject.endDate && (
+                      <span>End: {formatDate(subject.endDate, 'DD/MM/YYYY')}</span>
+                    )}
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 overflow-y-auto overflow-x-hidden w-full">
       <ViewAllDetailsDialog />
+      <TodayTasksDialog />
+      {selectedSubjectForDetails && (
+        (() => {
+          const { subject, sectionName } = selectedSubjectForDetails;
+          return (
+            <Dialog open={!!selectedSubjectForDetails} onOpenChange={(open) => !open && setSelectedSubjectForDetails(null)}>
+              <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                <DialogHeader>
+                  <DialogTitle className="text-2xl font-bold">
+                    {subject.name}
+                  </DialogTitle>
+                  <DialogDescription>
+                    Section: {sectionName}
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-6 py-4">
+                  {/* Status Badge */}
+                  <div className="flex items-center gap-2">
+                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      subject.status === 'completed'
+                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-400'
+                        : subject.status === 'in_progress'
+                        ? 'bg-blue-100 text-blue-700 dark:bg-blue-950/50 dark:text-blue-400'
+                        : 'bg-orange-100 text-orange-700 dark:bg-orange-950/50 dark:text-orange-400'
+                    }`}>
+                      {subject.status === 'completed' ? 'Completed' : subject.status === 'in_progress' ? 'In Progress' : 'Not Started'}
+                    </div>
+                  </div>
+
+                  {/* Card 1: Key Information */}
+                  <Card>
+                    <CardContent className="pt-6">
+                      <div className="grid grid-cols-2 gap-6">
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="h-4 w-4 text-challenge" />
+                              <span>Start Date</span>
+                            </div>
+                            <p className="text-lg font-semibold mt-1">
+                              {subject.startDate ? formatDate(subject.startDate) : "—"}
+                            </p>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Target className="h-4 w-4 text-challenge" />
+                              <span>End Date</span>
+                            </div>
+                            <p className="text-lg font-semibold mt-1">
+                              {subject.endDate ? formatDate(subject.endDate) : "—"}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="space-y-4">
+                          <div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Clock className="h-4 w-4 text-challenge" />
+                              <span>Progress</span>
+                            </div>
+                            <p className="text-lg font-semibold mt-1">
+                              {subject.progress || 0}%
+                            </p>
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <List className="h-4 w-4 text-challenge" />
+                              <span>Field Type</span>
+                            </div>
+                            <p className="text-lg font-semibold mt-1 capitalize">
+                              {subject.fieldType || 'none'}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  {/* Card 2: Description/Details */}
+                  {subject.description && subject.description.trim() && (
+                    <Card>
+                      <CardContent className="pt-6">
+                        <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                          <Target className="h-5 w-5 text-challenge" />
+                          Details
+                        </h3>
+                        <ul className="text-sm text-muted-foreground leading-relaxed list-disc pl-5 space-y-2">
+                          {getDetailItemsForDisplay(subject.description).map((line, i) => (
+                            <li key={i}>{line}</li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Card 3: Resources */}
+                  {subject.resources && subject.resources.length > 0 && (
+                    <Card>
+                      <CardContent className="pt-6">
+                        <h3 className="text-lg font-semibold flex items-center gap-2 mb-4">
+                          <Target className="h-5 w-5 text-challenge" />
+                          Resources
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {subject.resources.map((resource: any, resIdx: number) => (
+                            <a
+                              key={resIdx}
+                              href={resource.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-sm px-3 py-2 bg-muted/50 rounded-md hover:bg-muted border border-border/50 text-foreground flex items-center gap-2 transition-colors"
+                            >
+                              {resource.type === 'video' && (
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M2 6a2 2 0 012-2h6a2 2 0 012 2v8a2 2 0 01-2 2H4a2 2 0 01-2-2V6zM14.553 7.106A1 1 0 0014 8v4a1 1 0 00.553.894l2 1A1 1 0 0018 13V7a1 1 0 00-1.447-.894l-2 1z" />
+                                </svg>
+                              )}
+                              {resource.type === 'article' && (
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385V4.804zM11 4.804A7.968 7.968 0 0114.5 4c1.255 0 2.443.29 3.5.804v10A7.969 7.969 0 0014.5 14c-1.669 0-3.218.51-4.5 1.385V4.804z" />
+                                </svg>
+                              )}
+                              {resource.type === 'document' && (
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                              <span className="truncate max-w-[200px]">{resource.title}</span>
+                            </a>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-2 pt-2 border-t">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedSubjectForDetails(null);
+                        const sectionId = challenge?.sections?.find(s => s.name === sectionName)?.id;
+                        if (sectionId) {
+                          handleEditSubject({} as React.MouseEvent, sectionId, (subject as any)._id || subject.id);
+                        }
+                      }}
+                      className="flex-1"
+                    >
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit Subject
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => {
+                        setSelectedSubjectForDetails(null);
+                        const sectionId = challenge?.sections?.find(s => s.name === sectionName)?.id;
+                        if (sectionId) {
+                          handleDeleteSubject({} as React.MouseEvent, sectionId, (subject as any)._id || subject.id);
+                        }
+                      }}
+                      className="flex-1"
+                    >
+                      <Trash className="h-4 w-4 mr-2" />
+                      Delete Subject
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          );
+        })()
+      )}
       
       {/* Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-challenge/10 via-challenge/5 to-accent/10 p-8 backdrop-blur-sm border border-challenge/10 w-full min-w-0">
@@ -1592,20 +1856,31 @@ const ChallengeDetails = () => {
         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-24 w-24 rounded-full bg-gradient-to-tr from-accent/20 to-transparent blur-xl"></div>
         
         <div className="relative z-10">
-          <div className="flex items-center gap-3 mb-4">
-            <Button
-              variant="ghost"
-              className="h-10 w-10 p-0 rounded-full bg-background/50 hover:bg-background/80 transition-colors"
-              onClick={() => navigate(-1)}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="p-2 rounded-xl bg-challenge/10">
-              <Trophy className="h-6 w-6 text-challenge" />
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div className="flex items-center gap-3">
+              <Button
+                variant="ghost"
+                className="h-10 w-10 p-0 rounded-full bg-background/50 hover:bg-background/80 transition-colors"
+                onClick={() => navigate(-1)}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="p-2 rounded-xl bg-challenge/10">
+                <Trophy className="h-6 w-6 text-challenge" />
+              </div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-challenge to-accent bg-clip-text text-transparent">
+                {challenge?.name || 'Untitled Challenge'}
+              </h1>
             </div>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-challenge to-accent bg-clip-text text-transparent">
-              {challenge?.name || 'Untitled Challenge'}
-            </h1>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTodayTasks(true)}
+              className="flex items-center gap-2 h-9 px-4 border-border/50 hover:border-border transition-colors"
+            >
+              <Calendar className="h-4 w-4" />
+              Get Today's Tasks
+            </Button>
           </div>
           
           <p className="text-muted-foreground text-lg max-w-3xl mb-6">
@@ -1791,7 +2066,7 @@ const ChallengeDetails = () => {
                       <div className="text-sm text-muted-foreground">Total Subjects</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-3xl font-bold text-green-600 mb-2">
+                      <div className="text-3xl font-bold text-green-600 dark:text-green-400 mb-2">
                         {sections.reduce((total, section) => 
                           total + (section?.subjects?.filter((s: any) => s.status === 'completed').length || 0), 0
                         )}
@@ -1928,7 +2203,15 @@ const ChallengeDetails = () => {
                             {section?.subjects?.map((subject, idx) => (
                               <div 
                                 key={subject.id || `subject-${idx}`} 
-                                className="group relative overflow-hidden rounded-lg border border-border/50 bg-card/50 hover:bg-card transition-all duration-200 shadow-sm hover:shadow-md"
+                                className="group relative overflow-hidden rounded-lg border border-border/50 bg-card/50 hover:bg-card transition-all duration-200 shadow-sm hover:shadow-md cursor-pointer"
+                                onClick={(e) => {
+                                  // Don't open dialog if clicking on buttons
+                                  const target = e.target as HTMLElement;
+                                  if (target.closest('button')) {
+                                    return;
+                                  }
+                                  openSubjectDetails(e, subject, section?.name || 'Unknown Section');
+                                }}
                               >
                                 <div className="relative p-4">
                                   <div className="flex items-start justify-between">

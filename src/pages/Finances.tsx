@@ -42,6 +42,8 @@ const Finances = () => {
   }]);
 
   const [globalTransactionType, setGlobalTransactionType] = useState<"earning" | "expense">("earning");
+  const [formMonth, setFormMonth] = useState<number>(new Date().getMonth());
+  const [formYear, setFormYear] = useState<number>(new Date().getFullYear());
 
   const [newTransaction, setNewTransaction] = useState({
     type: "earning" as "earning" | "expense",
@@ -70,6 +72,8 @@ const Finances = () => {
 
         console.log('Transactions response:', transactionsResponse);
         console.log('Summary response:', summaryResponse);
+        console.log('Transactions response.data:', transactionsResponse?.data);
+        console.log('Is transactionsResponse.data an array?', Array.isArray(transactionsResponse?.data));
 
         // Handle transactions data
         const transactionsData = Array.isArray(transactionsResponse?.data) 
@@ -168,11 +172,13 @@ const Finances = () => {
       setIsSubmitting(true);
       
       for (const form of validForms) {
+        // Use the 15th of the selected month/year as the transaction date
+        const txDate = new Date(formYear, formMonth, 15);
         const transactionData = {
           ...form,
           type: globalTransactionType,
           amount: parseFloat(form.amount),
-          date: new Date().toISOString(),
+          date: txDate.toISOString(),
           category: globalTransactionType === 'earning' ? 'General Earning' : 'General Expense'
         };
         
@@ -203,6 +209,10 @@ const Finances = () => {
         amount: "",
         description: ""
       }]);
+      
+      // Reset month/year to current
+      setFormMonth(new Date().getMonth());
+      setFormYear(new Date().getFullYear());
       
       // Close the dialog
       document.getElementById('close-dialog')?.click();
@@ -438,16 +448,12 @@ const Finances = () => {
         return newSet;
       });
 
-      // Temporarily skip backend call to test UI update
-      console.log('Skipping backend call for testing - UI should update immediately');
+      await markTransactionAsCompleted(id, isCompleted);
       
       toast({
         title: 'Success',
         description: `Transaction marked as ${isCompleted ? 'completed' : 'not completed'}`,
       });
-      
-      // Uncomment the below line after testing
-      // await markTransactionAsCompleted(id, isCompleted);
       
       console.log('=== TOGGLE COMPLETION END ===');
       
@@ -696,7 +702,7 @@ const Finances = () => {
       const canvas = await html2canvas(tempContainer, {
         useCORS: true,
         logging: false,
-        backgroundColor: '#ffffff',
+        background: '#ffffff',
         width: 800,
         height: tempContainer.scrollHeight
       });
@@ -774,7 +780,7 @@ const Finances = () => {
                 <span className="font-medium">Add Transaction</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+            <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
               <DialogHeader className="pb-4">
                 <DialogTitle className="text-xl font-semibold">Add Transactions</DialogTitle>
                 <p className="text-sm text-muted-foreground">
@@ -810,6 +816,52 @@ const Finances = () => {
                     </SelectContent>
                   </Select>
                 </div>
+
+                {/* Month and Year Selection */}
+                <div className="space-y-2 pb-4 border-b">
+                  <Label className="text-sm font-medium">Transaction Month & Year</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Month</Label>
+                      <Select
+                        value={formMonth.toString()}
+                        onValueChange={(value) => setFormMonth(parseInt(value))}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 12 }, (_, i) => (
+                            <SelectItem key={i} value={i.toString()}>
+                              {new Date(2024, i, 1).toLocaleDateString('en-US', { month: 'long' })}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Year</Label>
+                      <Select
+                        value={formYear.toString()}
+                        onValueChange={(value) => setFormYear(parseInt(value))}
+                      >
+                        <SelectTrigger className="h-10">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableYears.map((year) => (
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Selected: {new Date(formYear, formMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                  </p>
+                </div>
                 
                 {transactionForms.map((form, index) => (
                   <div key={form.id} className="relative">
@@ -824,9 +876,9 @@ const Finances = () => {
                       </Button>
                     )}
                     
-                    <div className="border rounded-lg p-4 space-y-4 bg-gray-50/50">
+                    <div className="border rounded-lg p-4 space-y-4 bg-muted/30">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-sm font-medium text-gray-700">Transaction {index + 1}</h4>
+                        <h4 className="text-sm font-medium text-foreground">Transaction {index + 1}</h4>
                         <Badge variant="outline" className="text-xs">
                           {globalTransactionType === 'earning' ? 'Income' : 'Expense'}
                         </Badge>
@@ -867,7 +919,7 @@ const Finances = () => {
                   type="button"
                   variant="outline"
                   onClick={handleAddTransactionForm}
-                  className="w-full h-11 border-dashed border-2 hover:border-solid hover:bg-gray-50 transition-all duration-200"
+                  className="w-full h-11 border-dashed border-2 hover:border-solid hover:bg-muted/30 transition-all duration-200"
                 >
                   <PlusCircle className="h-4 w-4 mr-2" />
                   Add More Transaction
@@ -906,66 +958,93 @@ const Finances = () => {
 
       
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-green-400/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+      <div className="space-y-4">
+        {/* Month Picker */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 bg-muted/40 border rounded-xl px-4 py-2">
+            <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+            <Select
+              value={selectedMonth.toString()}
+              onValueChange={(value) => setSelectedMonth(parseInt(value))}
+            >
+              <SelectTrigger className="h-8 border-0 bg-transparent shadow-none p-0 w-[110px] font-medium focus:ring-0">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <SelectItem key={i} value={i.toString()}>
+                    {new Date(2024, i, 1).toLocaleDateString('en-US', { month: 'long' })}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            Showing transactions for {new Date(selectedYear, selectedMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200/50 dark:border-green-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-green-400/20 to-transparent dark:from-green-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-xl bg-green-500/10">
-                <ArrowUpRight className="h-5 w-5 text-green-600" />
+                <ArrowUpRight className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
-              <div className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-950/50 px-2 py-1 rounded-full">
                 +12.5%
               </div>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Total Earnings</p>
-              <p className="text-3xl font-bold text-green-700">
+              <p className="text-3xl font-bold text-green-700 dark:text-green-400">
                 ₹{(totalEarnings || 0).toLocaleString('en-IN')}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50 to-rose-50 border border-red-200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-red-400/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-950/30 dark:to-rose-950/30 border border-red-200/50 dark:border-red-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-red-400/20 to-transparent dark:from-red-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-xl bg-red-500/10">
-                <ArrowDownRight className="h-5 w-5 text-red-600" />
+                <ArrowDownRight className="h-5 w-5 text-red-600 dark:text-red-400" />
               </div>
-              <div className="text-xs font-medium text-red-600 bg-red-100 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/50 px-2 py-1 rounded-full">
                 -8.3%
               </div>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Total Expenses</p>
-              <p className="text-3xl font-bold text-red-700">
+              <p className="text-3xl font-bold text-red-700 dark:text-red-400">
                 ₹{(totalExpenses || 0).toLocaleString('en-IN')}
               </p>
             </div>
           </div>
         </div>
 
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/50 dark:border-blue-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent dark:from-blue-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-xl bg-blue-500/10">
-                <Wallet className="h-5 w-5 text-blue-600" />
+                <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className={`text-xs font-medium px-2 py-1 rounded-full ${(balance || 0) >= 0 ? 'text-green-600 bg-green-100' : 'text-red-600 bg-red-100'}`}>
+              <div className={`text-xs font-medium px-2 py-1 rounded-full ${(balance || 0) >= 0 ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-950/50' : 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-950/50'}`}>
                 {(balance || 0) >= 0 ? 'Positive' : 'Negative'}
               </div>
             </div>
             <div>
               <p className="text-sm font-medium text-muted-foreground mb-1">Net Balance</p>
-              <p className={`text-3xl font-bold ${(balance || 0) >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+              <p className={`text-3xl font-bold ${(balance || 0) >= 0 ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                 ₹{(balance || 0).toLocaleString('en-IN')}
               </p>
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       {/* Main Content */}
@@ -995,7 +1074,7 @@ const Finances = () => {
                   key={transaction._id} 
                   className={`group relative overflow-hidden rounded-xl border transition-all duration-300 hover:shadow-md ${
                     completedTransactions.has(transaction._id!) 
-                      ? 'bg-gradient-to-r from-green-50/50 to-emerald-50/50 border-green-200/50' 
+                      ? 'bg-gradient-to-r from-green-50/50 to-emerald-50/50 border-green-200/50 dark:from-green-950/20 dark:to-emerald-950/20 dark:border-green-800/30' 
                       : 'bg-card border-border/50 hover:border-border'
                   }`}
                 >
@@ -1029,8 +1108,8 @@ const Finances = () => {
                             </h4>
                             <Badge variant="outline" className={`text-xs px-2 py-0.5 ${
                               transaction.type === 'earning' 
-                                ? 'bg-green-100 text-green-700 border-green-200' 
-                                : 'bg-red-100 text-red-700 border-red-200'
+                                ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800' 
+                                : 'bg-red-100 text-red-700 border-red-200 dark:bg-red-950/50 dark:text-red-400 dark:border-red-800'
                             }`}>
                               {transaction.type === 'earning' ? 'Earning' : 'Expense'}
                             </Badge>
@@ -1049,12 +1128,12 @@ const Finances = () => {
                       <div className="flex items-center gap-3">
                         <div className="text-right">
                           <p className={`text-lg font-bold ${
-                            transaction.type === 'earning' ? 'text-green-600' : 'text-red-600'
+                            transaction.type === 'earning' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
                           }`}>
                             {transaction.type === 'earning' ? '+' : '-'}₹{transaction.amount.toFixed(2)}
                           </p>
                           {completedTransactions.has(transaction._id!) && (
-                            <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
+                            <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-1">
                               <Check className="h-3 w-3" />
                               <span>Completed</span>
                             </div>
@@ -1109,7 +1188,7 @@ const Finances = () => {
                   key={transaction._id} 
                   className={`group relative overflow-hidden rounded-xl border transition-all duration-300 hover:shadow-md ${
                     completedTransactions.has(transaction._id!) 
-                      ? 'bg-gradient-to-r from-green-50/50 to-emerald-50/50 border-green-200/50' 
+                      ? 'bg-gradient-to-r from-green-50/50 to-emerald-50/50 border-green-200/50 dark:from-green-950/20 dark:to-emerald-950/20 dark:border-green-800/30' 
                       : 'bg-card border-border/50 hover:border-border'
                   }`}
                 >
@@ -1162,7 +1241,7 @@ const Finances = () => {
                             +₹{transaction.amount.toFixed(2)}
                           </p>
                           {completedTransactions.has(transaction._id!) && (
-                            <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
+                            <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-1">
                               <Check className="h-3 w-3" />
                               <span>Completed</span>
                             </div>
@@ -1217,7 +1296,7 @@ const Finances = () => {
                   key={transaction._id} 
                   className={`group relative overflow-hidden rounded-xl border transition-all duration-300 hover:shadow-md ${
                     completedTransactions.has(transaction._id!) 
-                      ? 'bg-gradient-to-r from-green-50/50 to-emerald-50/50 border-green-200/50' 
+                      ? 'bg-gradient-to-r from-green-50/50 to-emerald-50/50 border-green-200/50 dark:from-green-950/20 dark:to-emerald-950/20 dark:border-green-800/30' 
                       : 'bg-card border-border/50 hover:border-border'
                   }`}
                 >
@@ -1270,7 +1349,7 @@ const Finances = () => {
                             -₹{transaction.amount.toFixed(2)}
                           </p>
                           {completedTransactions.has(transaction._id!) && (
-                            <div className="flex items-center gap-1 text-xs text-green-600 mt-1">
+                            <div className="flex items-center gap-1 text-xs text-green-600 dark:text-green-400 mt-1">
                               <Check className="h-3 w-3" />
                               <span>Completed</span>
                             </div>

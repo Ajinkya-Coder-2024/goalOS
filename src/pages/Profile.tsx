@@ -205,9 +205,9 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 p-6">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 p-6">
       {/* Profile Header */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-8 backdrop-blur-sm border border-white/20 shadow-2xl mb-8">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 dark:from-blue-800 dark:via-indigo-800 dark:to-purple-800 p-8 backdrop-blur-sm border border-white/20 dark:border-white/10 shadow-2xl mb-8">
         <div className="absolute top-0 right-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-24 w-24 rounded-full bg-white/10 blur-xl"></div>
         
@@ -219,7 +219,7 @@ const Profile = () => {
               </div>
               <div>
                 <h1 className="text-4xl font-bold text-white mb-1">Profile Settings</h1>
-                <p className="text-blue-100 text-lg">Manage your account and preferences</p>
+                <p className="text-blue-100 dark:text-blue-200 text-lg">Manage your account and preferences</p>
               </div>
             </div>
             <div className="flex items-center gap-3">
@@ -258,7 +258,7 @@ const Profile = () => {
             </div>
             <div className="space-y-3">
               <h2 className="text-2xl font-bold text-white">{profile.name}</h2>
-              <div className="flex items-center text-blue-100 gap-3">
+              <div className="flex items-center text-blue-100 dark:text-blue-200 gap-3">
                 <div className="flex items-center gap-2 bg-white/10 px-3 py-1 rounded-full">
                   <Mail className="h-4 w-4" />
                   {profile.email}
@@ -269,7 +269,7 @@ const Profile = () => {
                 </div>
               </div>
               {profile.location && (
-                <div className="flex items-center text-blue-100 gap-2 bg-white/10 px-3 py-1 rounded-full w-fit">
+                <div className="flex items-center text-blue-100 dark:text-blue-200 gap-2 bg-white/10 px-3 py-1 rounded-full w-fit">
                   <User className="h-4 w-4" />
                   {profile.location}
                 </div>
@@ -282,69 +282,69 @@ const Profile = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Profile Information */}
         <div className="lg:col-span-2">
-          <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
+          <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/80 dark:bg-card/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border-b dark:border-border">
               <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 rounded-xl bg-blue-100">
-                  <User className="h-5 w-5 text-blue-600" />
+                <div className="p-2 rounded-xl bg-blue-100 dark:bg-blue-900/50">
+                  <User className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
                 Profile Information
               </CardTitle>
-              <CardDescription className="text-gray-600">Update your personal information and details</CardDescription>
+              <CardDescription className="text-gray-600 dark:text-muted-foreground">Update your personal information and details</CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-3">
-                  <Label htmlFor="name" className="text-sm font-medium text-gray-700">Full Name</Label>
+                  <Label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-foreground">Full Name</Label>
                   <Input 
                     id="name" 
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     disabled={!isEditing} 
-                    className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl"
+                    className="h-11 border-gray-200 dark:border-input focus:border-blue-500 focus:ring-blue-500/20 rounded-xl"
                     placeholder="Enter your name"
                   />
                 </div>
                 <div className="space-y-3">
-                  <Label htmlFor="email" className="text-sm font-medium text-gray-700">Email Address</Label>
+                  <Label htmlFor="email" className="text-sm font-medium text-gray-700 dark:text-foreground">Email Address</Label>
                   <Input 
                     id="email" 
                     type="email" 
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     disabled={!isEditing} 
-                    className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl"
+                    className="h-11 border-gray-200 dark:border-input focus:border-blue-500 focus:ring-blue-500/20 rounded-xl"
                     placeholder="Enter your email"
                   />
                 </div>
               </div>
               
               <div className="space-y-3">
-                <Label htmlFor="location" className="text-sm font-medium text-gray-700">Location</Label>
+                <Label htmlFor="location" className="text-sm font-medium text-gray-700 dark:text-foreground">Location</Label>
                 <Input 
                   id="location" 
                   value={formData.location}
                   onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                   disabled={!isEditing} 
-                  className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl"
+                  className="h-11 border-gray-200 dark:border-input focus:border-blue-500 focus:ring-blue-500/20 rounded-xl"
                   placeholder="Enter your location"
                 />
               </div>
               
               <div className="space-y-3">
-                <Label htmlFor="bio" className="text-sm font-medium text-gray-700">Bio</Label>
+                <Label htmlFor="bio" className="text-sm font-medium text-gray-700 dark:text-foreground">Bio</Label>
                 <Input 
                   id="bio" 
                   value={formData.bio}
                   onChange={(e) => setFormData({ ...formData, bio: e.target.value })}
                   disabled={!isEditing} 
-                  className="h-11 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 rounded-xl"
+                  className="h-11 border-gray-200 dark:border-input focus:border-blue-500 focus:ring-blue-500/20 rounded-xl"
                   placeholder="Tell us about yourself"
                 />
               </div>
               
               {isEditing && (
-                <div className="flex gap-3 pt-4 border-t">
+                <div className="flex gap-3 pt-4 border-t dark:border-border">
                   <Button 
                     onClick={handleSaveProfile} 
                     className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
@@ -355,7 +355,7 @@ const Profile = () => {
                   <Button 
                     variant="outline" 
                     onClick={handleEditToggle}
-                    className="border-gray-200 hover:bg-gray-50"
+                    className="border-gray-200 dark:border-input hover:bg-gray-50 dark:hover:bg-accent"
                   >
                     Cancel
                   </Button>
@@ -367,22 +367,22 @@ const Profile = () => {
 
         {/* Security Section */}
         <div className="lg:col-span-1">
-          <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 border-b">
+          <Card className="group hover:shadow-xl transition-all duration-300 border-0 bg-white/80 dark:bg-card/80 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 border-b dark:border-border">
               <CardTitle className="flex items-center gap-3 text-xl">
-                <div className="p-2 rounded-xl bg-purple-100">
-                  <Shield className="h-5 w-5 text-purple-600" />
+                <div className="p-2 rounded-xl bg-purple-100 dark:bg-purple-900/50">
+                  <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
                 Security
               </CardTitle>
-              <CardDescription className="text-gray-600">Manage your account security</CardDescription>
+              <CardDescription className="text-gray-600 dark:text-muted-foreground">Manage your account security</CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-6">
               {!isChangingPassword ? (
                 <Button 
                   variant="outline" 
                   onClick={() => setIsChangingPassword(true)}
-                  className="w-full flex items-center gap-3 h-12 border-purple-200 hover:bg-purple-50 hover:border-purple-300 rounded-xl"
+                  className="w-full flex items-center gap-3 h-12 border-purple-200 dark:border-purple-800 hover:bg-purple-50 dark:hover:bg-purple-950/50 hover:border-purple-300 dark:hover:border-purple-700 rounded-xl"
                 >
                   <Lock className="h-4 w-4" />
                   Change Password
@@ -390,36 +390,36 @@ const Profile = () => {
               ) : (
                 <div className="space-y-4">
                   <div className="space-y-3">
-                    <Label htmlFor="currentPassword" className="text-sm font-medium text-gray-700">Current Password</Label>
+                    <Label htmlFor="currentPassword" className="text-sm font-medium text-gray-700 dark:text-foreground">Current Password</Label>
                     <Input 
                       id="currentPassword"
                       type="password"
                       value={passwordData.currentPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                       placeholder="Enter current password"
-                      className="h-11 border-gray-200 focus:border-purple-500 focus:ring-purple-500/20 rounded-xl"
+                      className="h-11 border-gray-200 dark:border-input focus:border-purple-500 focus:ring-purple-500/20 rounded-xl"
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label htmlFor="newPassword" className="text-sm font-medium text-gray-700">New Password</Label>
+                    <Label htmlFor="newPassword" className="text-sm font-medium text-gray-700 dark:text-foreground">New Password</Label>
                     <Input 
                       id="newPassword"
                       type="password"
                       value={passwordData.newPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
                       placeholder="Enter new password"
-                      className="h-11 border-gray-200 focus:border-purple-500 focus:ring-purple-500/20 rounded-xl"
+                      className="h-11 border-gray-200 dark:border-input focus:border-purple-500 focus:ring-purple-500/20 rounded-xl"
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700">Confirm New Password</Label>
+                    <Label htmlFor="confirmPassword" className="text-sm font-medium text-gray-700 dark:text-foreground">Confirm New Password</Label>
                     <Input 
                       id="confirmPassword"
                       type="password"
                       value={passwordData.confirmPassword}
                       onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
                       placeholder="Confirm new password"
-                      className="h-11 border-gray-200 focus:border-purple-500 focus:ring-purple-500/20 rounded-xl"
+                      className="h-11 border-gray-200 dark:border-input focus:border-purple-500 focus:ring-purple-500/20 rounded-xl"
                     />
                   </div>
                   <div className="flex gap-3">
@@ -440,7 +440,7 @@ const Profile = () => {
                           confirmPassword: ''
                         });
                       }}
-                      className="border-gray-200 hover:bg-gray-50"
+                      className="border-gray-200 dark:border-input hover:bg-gray-50 dark:hover:bg-accent"
                     >
                       Cancel
                     </Button>
@@ -455,15 +455,15 @@ const Profile = () => {
       {/* Logout Confirmation Dialog */}
       {showLogoutDialog && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-md mx-4 shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
-            <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 border-b">
-              <CardTitle className="flex items-center gap-3 text-xl text-orange-600">
-                <div className="p-2 rounded-xl bg-orange-100">
+          <Card className="w-full max-w-md mx-4 shadow-2xl border-0 bg-white/95 dark:bg-card/95 backdrop-blur-sm">
+            <CardHeader className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/50 dark:to-red-950/50 border-b dark:border-border">
+              <CardTitle className="flex items-center gap-3 text-xl text-orange-600 dark:text-orange-400">
+                <div className="p-2 rounded-xl bg-orange-100 dark:bg-orange-900/50">
                   <AlertTriangle className="h-5 w-5" />
                 </div>
                 Confirm Logout
               </CardTitle>
-              <CardDescription className="text-gray-600">
+              <CardDescription className="text-gray-600 dark:text-muted-foreground">
                 Are you sure you want to logout? You will need to login again to access your account.
               </CardDescription>
             </CardHeader>
@@ -472,7 +472,7 @@ const Profile = () => {
                 <Button 
                   variant="outline" 
                   onClick={() => setShowLogoutDialog(false)}
-                  className="border-gray-200 hover:bg-gray-50 rounded-xl"
+                  className="border-gray-200 dark:border-input hover:bg-gray-50 dark:hover:bg-accent rounded-xl"
                 >
                   Cancel
                 </Button>
