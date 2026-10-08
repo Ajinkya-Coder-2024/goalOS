@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,7 @@ interface ChallengeWithId extends ChallengeType {
 
 const Challenges = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [challenges, setChallenges] = useState<ChallengeWithId[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -26,7 +27,8 @@ const Challenges = () => {
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [challengeToDelete, setChallengeToDelete] = useState<string | null>(null);
 
-  // Fetch challenges on component mount
+
+  // Fetch challenges whenever we navigate to this page
   useEffect(() => {
     const fetchChallenges = async () => {
       try {
@@ -61,7 +63,7 @@ const Challenges = () => {
     };
 
     fetchChallenges();
-  }, []);
+  }, [location]);
 
   const handleEditChallenge = (challenge: ChallengeWithId) => {
     navigate(`/challenges/${challenge._id}/edit`);
@@ -205,71 +207,73 @@ const Challenges = () => {
               Create and track personal development challenges to achieve your goals
             </p>
           </div>
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 h-12 px-6 bg-gradient-to-r from-challenge to-accent hover:from-challenge/90 hover:to-accent/90 shadow-lg hover:shadow-xl transition-all duration-300 group">
-                <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
-                <span className="font-medium">Add Challenge</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader className="pb-4">
-                <DialogTitle className="text-xl font-semibold">Create New Challenge</DialogTitle>
-                <p className="text-sm text-muted-foreground">
-                  Start your journey by creating a new personal development challenge
-                </p>
-              </DialogHeader>
-              <div className="grid gap-6 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-sm font-medium">Challenge Name</Label>
-                  <Input
-                    id="name"
-                    value={newChallengeName}
-                    onChange={(e) => setNewChallengeName(e.target.value)}
-                    className="h-11"
-                    placeholder="e.g., Learn React, Read 20 Books, Fitness Challenge"
-                  />
+          <div className="flex gap-3">
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2 h-12 px-6 bg-gradient-to-r from-challenge to-accent hover:from-challenge/90 hover:to-accent/90 shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  <Plus className="h-4 w-4 group-hover:rotate-90 transition-transform duration-300" />
+                  <span className="font-medium">Add Challenge</span>
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader className="pb-4">
+                  <DialogTitle className="text-xl font-semibold">Create New Challenge</DialogTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Start your journey by creating a new personal development challenge
+                  </p>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name" className="text-sm font-medium">Challenge Name</Label>
+                    <Input
+                      id="name"
+                      value={newChallengeName}
+                      onChange={(e) => setNewChallengeName(e.target.value)}
+                      className="h-11"
+                      placeholder="e.g., Learn React, Read 20 Books, Fitness Challenge"
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setIsDialogOpen(false)}
-                  disabled={isSubmitting}
-                  className="h-11"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  onClick={handleSubmitChallenge}
-                  disabled={!newChallengeName.trim() || isSubmitting}
-                  className="h-11 min-w-[120px]"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Creating...
-                    </>
-                  ) : (
-                    'Create Challenge'
-                  )}
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsDialogOpen(false)}
+                    disabled={isSubmitting}
+                    className="h-11"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSubmitChallenge}
+                    disabled={!newChallengeName.trim() || isSubmitting}
+                    className="h-11 min-w-[120px]"
+                  >
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Challenge'
+                    )}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-challenge/20 to-challenge/10 border border-challenge/200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-challenge/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 border border-purple-200/50 dark:border-purple-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-purple-400/20 to-transparent dark:from-purple-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 rounded-xl bg-challenge/10">
-                <Flame className="h-5 w-5 text-challenge" />
+              <div className="p-2 rounded-xl bg-purple-500/10">
+                <Flame className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
-              <div className="text-xs font-medium text-challenge bg-challenge/10 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-950/50 px-2 py-1 rounded-full">
                 Active Now
               </div>
             </div>
@@ -279,21 +283,21 @@ const Challenges = () => {
               </p>
               <p className="text-sm text-muted-foreground">Active Challenges</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-challenge">
+            <div className="mt-4 flex items-center gap-2 text-xs text-purple-600 dark:text-purple-400">
               <Zap className="h-3 w-3" />
               <span>In Progress</span>
             </div>
           </div>
         </div>
         
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-green-400/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200/50 dark:border-green-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-green-400/20 to-transparent dark:from-green-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 rounded-xl bg-green-500/10">
-                <Trophy className="h-5 w-5 text-green-600" />
+                <Trophy className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
-              <div className="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-950/50 px-2 py-1 rounded-full">
                 Achieved
               </div>
             </div>
@@ -303,21 +307,21 @@ const Challenges = () => {
               </p>
               <p className="text-sm text-muted-foreground">Completed</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-green-600">
+            <div className="mt-4 flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
               <CheckCircle className="h-3 w-3" />
               <span>Success Rate</span>
             </div>
           </div>
         </div>
         
-        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/10 to-accent/10 border border-primary/200/50 p-6 shadow-sm hover:shadow-md transition-all duration-300">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-primary/20 to-transparent blur-xl group-hover:scale-110 transition-transform duration-500"></div>
+        <div className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border border-blue-200/50 dark:border-blue-800/30 p-6 shadow-sm hover:shadow-md transition-all duration-300">
+          <div className="absolute top-0 right-0 -mt-4 -mr-4 h-20 w-20 rounded-full bg-gradient-to-br from-blue-400/20 to-transparent dark:from-blue-400/10 blur-xl group-hover:scale-110 transition-transform duration-500"></div>
           <div className="relative z-10">
             <div className="flex items-center justify-between mb-4">
-              <div className="p-2 rounded-xl bg-primary/10">
-                <Target className="h-5 w-5 text-primary" />
+              <div className="p-2 rounded-xl bg-blue-500/10">
+                <Target className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
-              <div className="text-xs font-medium text-primary bg-primary/10 px-2 py-1 rounded-full">
+              <div className="text-xs font-medium text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-950/50 px-2 py-1 rounded-full">
                 Total
               </div>
             </div>
@@ -327,7 +331,7 @@ const Challenges = () => {
               </p>
               <p className="text-sm text-muted-foreground">Total Subjects</p>
             </div>
-            <div className="mt-4 flex items-center gap-2 text-xs text-primary">
+            <div className="mt-4 flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400">
               <Calendar className="h-3 w-3" />
               <span>All Topics</span>
             </div>
@@ -366,9 +370,9 @@ const Challenges = () => {
             {challenges.map((challenge) => {
               const StatusIcon = getStatusIcon(challenge.status);
               const statusColors = {
-                active: 'bg-challenge/10 text-challenge border-challenge/20',
-                completed: 'bg-green-50 text-green-700 border-green-200',
-                paused: 'bg-gray-50 text-gray-700 border-gray-200'
+                active: 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950/50 dark:text-purple-400 dark:border-purple-800',
+                completed: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-950/50 dark:text-green-400 dark:border-green-800',
+                paused: 'bg-gray-100 text-gray-700 border-gray-200 dark:bg-gray-800 dark:text-gray-400 dark:border-gray-700'
               };
               
               return (
@@ -376,10 +380,10 @@ const Challenges = () => {
                   key={challenge._id}
                   className={`group relative overflow-hidden rounded-xl border transition-all duration-300 hover:shadow-lg ${
                     challenge.status === 'active' 
-                      ? 'bg-gradient-to-br from-challenge/5 via-card to-challenge/10 border-challenge/20 hover:border-challenge/30' 
+                      ? 'bg-gradient-to-br from-purple-50/50 to-violet-50/30 border-purple-200/50 hover:border-purple-300/50 dark:from-purple-950/20 dark:to-violet-950/10 dark:border-purple-800/30 dark:hover:border-purple-700/50' 
                       : challenge.status === 'completed'
-                      ? 'bg-gradient-to-br from-green-50/50 via-card to-green-50/30 border-green-200/50 hover:border-green-300/50'
-                      : 'bg-gradient-to-br from-gray-50/50 via-card to-gray-50/30 border-gray-200/50 hover:border-gray-300/50'
+                      ? 'bg-gradient-to-br from-green-50/50 to-emerald-50/30 border-green-200/50 hover:border-green-300/50 dark:from-green-950/20 dark:to-emerald-950/10 dark:border-green-800/30 dark:hover:border-green-700/50'
+                      : 'bg-gradient-to-br from-gray-50/50 to-gray-100/30 border-gray-200/50 hover:border-gray-300/50 dark:from-gray-800/20 dark:to-gray-800/10 dark:border-gray-700/30 dark:hover:border-gray-600/50'
                   }`}
                 >
                   <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
@@ -408,19 +412,7 @@ const Challenges = () => {
                       </Badge>
                     </div>
                     
-                    <div className="flex items-center gap-2 mb-4">
-                      <div className="flex-1">
-                        <div className="text-xs text-muted-foreground mb-1">Subjects</div>
-                        <div className="text-sm font-medium">
-                          {challenge.subjects?.length || 0} {challenge.subjects?.length === 1 ? 'subject' : 'subjects'}
-                        </div>
-                      </div>
-                      {challenge.subjects && challenge.subjects.length > 0 && (
-                        <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                          <Target className="h-4 w-4 text-primary" />
-                        </div>
-                      )}
-                    </div>
+
                     
                     <div className="flex items-center gap-2 pt-4 border-t border-border/50">
                       <Button 

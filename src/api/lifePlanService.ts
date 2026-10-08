@@ -28,7 +28,9 @@ export const getLifePlans = async () => {
 };
 
 export const createLifePlan = async (planData: LifePlanPayload) => {
+  console.debug('[lifePlanService] createLifePlan payload:', JSON.stringify(planData, null, 2));
   const response = await axios.post(API_URL, planData, getAuthHeader());
+  console.debug('[lifePlanService] createLifePlan response:', response.data);
   return response.data.data;
 };
 
@@ -39,11 +41,13 @@ export const updateLifePlan = async (
     completedAt?: string | null;
   }
 ) => {
+  console.debug('[lifePlanService] updateLifePlan payload:', JSON.stringify(planData, null, 2));
   const response = await axios.put(
     `${API_URL}/${id}`,
     planData,
     getAuthHeader()
   );
+  console.debug('[lifePlanService] updateLifePlan response:', response.data);
   return response.data.data;
 };
 
